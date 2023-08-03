@@ -2,7 +2,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
 
-from ..config import get_database
+from config import get_database
 
 # 获取数据库连接信息
 database_setting = get_database()
