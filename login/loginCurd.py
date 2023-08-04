@@ -1,26 +1,28 @@
 """登录，注册相关的数据库操作"""
 from datetime import datetime
 
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 from sqlalchemy.orm import Session
 from uuid import uuid4
 
 from usersetting.models import User
 from usersetting.schema import UserCreate
-from utils.requestUtil import response
 
 
 def user_register(user: UserCreate, session: Session):
     """用户注册"""
-
+    res = {'result': False, 'user': None}
     if not check_user_emial(user.useremail, session):
-        return response.fail(521, "用户已存在", {'useremail': user.useremail, 'username': user.username})
+        return res
+    # 暂时不使用邮箱认证
     user = User(**user.model_dump(), rowguid=str(uuid4()), created_time=datetime.now())
 
     session.add(user)
     session.commit()
     session.flush()
-    return response.success("注册成功", {'useremail': user.useremail, 'username': user.username})
+    res['user'] = user
+    res['result'] = True
+    return res
 
 
 def check_user_emial(email: str, session: Session):
@@ -29,3 +31,13 @@ def check_user_emial(email: str, session: Session):
     result = session.execute(stmt, {'email': email}).scalar()
 
     return result == 0
+
+
+def user_active(guid: str, session: Session):
+    user = session.execute(select(User).where(User.rowguid == guid)).scalar()
+    if user is None:
+        return '用户不存在！'
+    updatesql = update(User).where(User.rowguid == guid).values(isenable=True)
+    session.execute(updatesql)
+    session.commit()
+    return "用户激活成功！"

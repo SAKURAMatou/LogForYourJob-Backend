@@ -21,5 +21,13 @@ class Base(DeclarativeBase):
 
 def get_session():
     """获取数据库会话的方法依赖"""
-    with SessionLocal() as session:
+    try:
+        session = SessionLocal()
         yield session
+    except Exception as e:
+        print(e)
+        session.rollback()
+    finally:
+        session.close()
+    # with SessionLocal() as session:
+    #     yield session

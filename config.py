@@ -4,9 +4,6 @@ from functools import lru_cache
 from dotenv import load_dotenv
 
 
-# load_dotenv()
-
-
 class DatabaseSettings(BaseSettings):
     """数据库连接信息"""
     model_config = SettingsConfigDict(env_file_encoding='utf-8', extra='ignore')
@@ -16,7 +13,20 @@ class DatabaseSettings(BaseSettings):
     # database_password: str
 
 
+class Settings(BaseSettings):
+    """系统配置"""
+    model_config = SettingsConfigDict(env_file_encoding='utf-8', extra='ignore')
+    secret_key: str  # 用户token的加密key
+    activity_key: str  # 用户激活时的加密key
+    system_host: str
+
+
 @lru_cache()
 def get_database():
-    load_dotenv('.env.database')
+    # load_dotenv('.env.database')
     return DatabaseSettings(_env_file='.env.database')
+
+
+@lru_cache()
+def get_settings():
+    return Settings(_env_file='.env')
