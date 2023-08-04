@@ -15,7 +15,7 @@ def user_register(user: UserCreate, session: Session):
 
     if not check_user_emial(user.useremail, session):
         return response.fail(521, "用户已存在", {'useremail': user.useremail, 'username': user.username})
-    user = User(**user.model_dump(), rowguid=uuid4(), created_time=datetime.now())
+    user = User(**user.model_dump(), rowguid=str(uuid4()), created_time=datetime.now())
 
     session.add(user)
     session.commit()
