@@ -1,14 +1,14 @@
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
-from login import routers as login
+from login import routers as login, tokenRouter
 from dao.database import Base, engine
-
 
 app = FastAPI()
 # 定义token获取的接口
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="rest/token")
+app.include_router(tokenRouter.router)
 app.include_router(login.router)
 
 # //根据模型创建对饮的数据表

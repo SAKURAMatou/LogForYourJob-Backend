@@ -1,5 +1,5 @@
 class Response:
-    def fail(self, code: int, msg: str, custom: dict) -> dict:
+    def fail(self, code: int, msg: str, custom: dict = {}) -> dict:
         return {"code": code, "msg": msg, "custom": custom}
 
     def success(self, msg: str, custom: dict) -> dict:

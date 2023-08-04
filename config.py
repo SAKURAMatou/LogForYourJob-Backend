@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     secret_key: str  # 用户token的加密key
     activity_key: str  # 用户激活时的加密key
     system_host: str
+    token_expires_in: int = 60
 
 
 @lru_cache()

@@ -34,10 +34,19 @@ def check_user_emial(email: str, session: Session):
 
 
 def user_active(guid: str, session: Session):
-    user = session.execute(select(User).where(User.rowguid == guid)).scalar()
+    user = get_user_guid(guid, session)
     if user is None:
         return '用户不存在！'
     updatesql = update(User).where(User.rowguid == guid).values(isenable=True)
     session.execute(updatesql)
     session.commit()
     return "用户激活成功！"
+
+
+def get_user_guid(guid: str, session: Session) -> User:
+    return session.execute(select(User).where(User.rowguid == guid)).scalar()
+
+
+def get_user_one_field(key: str, value: str, session: Session) -> User:
+    stmt = select(User).where(User[key] == value)
+    return session.execute(stmt).scalar()

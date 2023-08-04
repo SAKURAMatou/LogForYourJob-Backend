@@ -1,5 +1,6 @@
 """JSON Web Tokens工具类"""
 import time
+import bcrypt
 from datetime import datetime, timedelta
 
 import jwt
@@ -55,3 +56,8 @@ def decrypt_token(token: str, secret_key: str):
         return '令牌已过期'  # JWT令牌已过期
     except jwt.InvalidTokenError:
         return '令牌无效'  # JWT令牌无效
+
+
+def hash_pwd(pwd: str) -> str:
+    plain_password = pwd.encode('utf-8')
+    bcrypt.hashpw(plain_password, bcrypt.gensalt())

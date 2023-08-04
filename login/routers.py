@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends
-import bcrypt
 
 from dao.database import get_session
+from dependencies import get_user_token
 from usersetting.schema import UserCreate
-from .loginCurd import user_register, user_active
+from .loginCurd import user_register, user_active, get_user_one_field
 from utils.requestUtil import response
 from config import get_settings
-from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration
+from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, hash_pwd
 
 router = APIRouter(prefix="/user")
 
@@ -14,9 +14,7 @@ router = APIRouter(prefix="/user")
 @router.post("/register")
 async def register(userCreate: UserCreate, session=Depends(get_session)):
     """用户注册"""
-    plain_password = userCreate.pwd.encode('utf-8')
-    hashed_password = bcrypt.hashpw(plain_password, bcrypt.gensalt())
-    userCreate.pwd = hashed_password
+    userCreate.pwd = hash_pwd(userCreate.pwd)
 
     res = user_register(userCreate, session)
     if not res['result']:
@@ -27,9 +25,31 @@ async def register(userCreate: UserCreate, session=Depends(get_session)):
 
 
 @router.post("/login")
-async def login():
+async def login(userCreate: UserCreate, session=Depends(get_session)):
     """用户登录"""
-    pass
+    user = get_user_one_field('useremail', userCreate.username, session)
+    settings = get_settings()
+    token = ''
+    if user is None:
+        user = get_user_one_field('phone', userCreate.username, session)
+    if user is None:
+        return response.fail(521, "用户不存在")
+
+    # 比较密码是否相同,对入参的密码进行加密
+    hashed_password = hash_pwd(userCreate.pwd)
+    if hashed_password != user.pwd:
+        return response.fail(531, "用户名或密码错误！")
+    if not user.isenable:
+        return response.fail(532, "用户已被禁用，或尚未激活！")
+    # 密码相同则登录成功，生成token
+    token = encrypt_and_expire(user.rowguid, settings.secret_key)
+    return response.success("登录成功", {'token': token, 'avatarurl': user.avatarurl, 'useremail': user.useremail,
+                                     'username': user.username})
+
+
+@router.get("/detail")
+async def get_user(user: UserCreate = Depends(get_user_token)):
+    return user
 
 
 @router.get("/activate/{token}")
