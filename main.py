@@ -1,13 +1,30 @@
 import uvicorn
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from login import routers as login
 from login import tokenRouter
 from dao.database import Base, engine
+from config import get_settings
+from utils.JWTUtil import refresh_token
 
 app = FastAPI()
-# 定义token获取的接口
+
+
+@app.middleware("http")
+async def refresh_token_middleware(request: Request, call_next):
+    """刷新令牌"""
+    old_token = request.headers.get("Authorization")
+
+    response = await call_next(request)
+    if old_token:
+        old_token = old_token.replace("Bearer ", '')
+        settings = get_settings()
+        res = refresh_token(old_token, settings.secret_key)
+        if res:
+            response.headers["token"] = res
+    return response
+
 
 app.include_router(tokenRouter.router)
 app.include_router(login.router)

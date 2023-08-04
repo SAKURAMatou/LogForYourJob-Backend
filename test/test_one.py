@@ -43,3 +43,10 @@ class TestOne(unittest.TestCase):
         print(type(hashed), str(hashed))
         print(
             check_password('11111', 'JDJiJDEyJFM5c254a2t2VzRTOHlNa0MxLmVzZ3VWVko3ckhRMkZ2NUxrQmxjQ3NLNUxnSkR3QndKMjhX'))
+
+    def test_time_diff(self):
+        end = datetime.now() + timedelta(minutes=5)
+        dif = end.timestamp() - time.time()
+        print(round(dif))
+        if "test":
+            print('test')

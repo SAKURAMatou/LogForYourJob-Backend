@@ -25,6 +25,24 @@ def encrypt_and_expire(data: str, secret_key: str, expire_duration: int = 60):
     return token
 
 
+def refresh_token(token: str, secret_key: str) -> str:
+    """根据已有token刷新token;当token的失效实现距离现在不足5min时更新token"""
+    try:
+        payload = decrypt_token(token, secret_key)
+        if type(payload) == str:
+            # 说明解密出现异常返回字符串
+            return False
+        expire_time = payload['exp']
+        time_difference = expire_time - time.time()
+        if round(time_difference) < 300:
+            return encrypt_and_expire(payload['data'], secret_key)
+        else:
+            return token
+    except Exception as e:
+        print(e)
+        return 'token解析异常'
+
+
 def decrypt_and_check_expiration(token, secret_key):
     """解密jwt方法"""
     try:
