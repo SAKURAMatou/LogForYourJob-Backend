@@ -4,14 +4,22 @@ from fastapi.security import OAuth2PasswordRequestForm
 from config import get_settings
 from dao.database import get_session
 from .loginCurd import get_user_one_field
-from utils.JWTUtil import encrypt_and_expire, hash_pwd
+from utils.JWTUtil import encrypt_and_expire, hash_pwd, check_password
 
 router = APIRouter()
 
 
 @router.post("/rest/token")
 async def get_token(form_data: OAuth2PasswordRequestForm = Depends(), session=Depends(get_session)):
-    user = get_user_one_field('useremail', form_data.username, session)
+    users = get_user_one_field('useremail', form_data.username, session)
+
+    if not users:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="user not existing",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = users[0]
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -19,8 +27,8 @@ async def get_token(form_data: OAuth2PasswordRequestForm = Depends(), session=De
             headers={"WWW-Authenticate": "Bearer"},
         )
         # 比较密码是否相同,对入参的密码进行加密
-    hashed_password = hash_pwd(form_data.pwd)
-    if not hashed_password == user.pwd:
+    # hashed_password = hash_pwd(form_data.password)
+    if not check_password(form_data.password, user.pwd):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
     settings = get_settings()

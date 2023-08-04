@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 import time
 
-from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, decrypt_token
+from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, decrypt_token, hash_pwd, check_password
 
 
 class TestOne(unittest.TestCase):
@@ -37,3 +37,9 @@ class TestOne(unittest.TestCase):
         print('now', int(time.time()))
         print(payload['exp'], datetime.fromtimestamp(payload['exp']))
         print(decrypt_and_check_expiration(token, 'dml_activity_key'))
+
+    def test_hash_pwd(self):
+        hashed = hash_pwd("11111")
+        print(type(hashed), str(hashed))
+        print(
+            check_password('11111', 'JDJiJDEyJFM5c254a2t2VzRTOHlNa0MxLmVzZ3VWVko3ckhRMkZ2NUxrQmxjQ3NLNUxnSkR3QndKMjhX'))

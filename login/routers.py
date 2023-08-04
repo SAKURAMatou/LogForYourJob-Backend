@@ -6,7 +6,7 @@ from usersetting.schema import UserCreate
 from .loginCurd import user_register, user_active, get_user_one_field
 from utils.requestUtil import response
 from config import get_settings
-from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, hash_pwd
+from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, hash_pwd, check_password
 
 router = APIRouter(prefix="/user")
 
@@ -27,17 +27,17 @@ async def register(userCreate: UserCreate, session=Depends(get_session)):
 @router.post("/login")
 async def login(userCreate: UserCreate, session=Depends(get_session)):
     """用户登录"""
-    user = get_user_one_field('useremail', userCreate.username, session)
+    users = get_user_one_field('useremail', userCreate.username, session)
+    if not users:
+        users = get_user_one_field('phone', userCreate.username, session)
+
+    if users is None:
+        return response.fail(521, "用户不存在")
+    user = users[0]
     settings = get_settings()
     token = ''
-    if user is None:
-        user = get_user_one_field('phone', userCreate.username, session)
-    if user is None:
-        return response.fail(521, "用户不存在")
-
-    # 比较密码是否相同,对入参的密码进行加密
-    hashed_password = hash_pwd(userCreate.pwd)
-    if hashed_password != user.pwd:
+    # 比较密码是否相同,
+    if not check_password(userCreate.pwd, user.pwd):
         return response.fail(531, "用户名或密码错误！")
     if not user.isenable:
         return response.fail(532, "用户已被禁用，或尚未激活！")

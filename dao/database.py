@@ -1,7 +1,7 @@
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine
-
+from contextlib import contextmanager
 from config import get_database
 
 # 获取数据库连接信息
@@ -19,15 +19,17 @@ class Base(DeclarativeBase):
     pass
 
 
+# @contextmanager
 def get_session():
     """获取数据库会话的方法依赖"""
-    try:
-        session = SessionLocal()
-        yield session
-    except Exception as e:
-        print(e)
-        session.rollback()
-    finally:
-        session.close()
-    # with SessionLocal() as session:
+    # try:
+    #     session = SessionLocal()
     #     yield session
+    #     session.commit()
+    # except Exception as e:
+    #     print(e)
+    #     session.rollback()
+    # finally:
+    #     session.close()
+    with SessionLocal() as session:
+        yield session

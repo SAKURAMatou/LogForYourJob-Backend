@@ -1,4 +1,5 @@
 """JSON Web Tokens工具类"""
+import base64
 import time
 import bcrypt
 from datetime import datetime, timedelta
@@ -59,5 +60,17 @@ def decrypt_token(token: str, secret_key: str):
 
 
 def hash_pwd(pwd: str) -> str:
+    """对明文密码进行加密，并通过base64转化为字符串"""
     plain_password = pwd.encode('utf-8')
-    bcrypt.hashpw(plain_password, bcrypt.gensalt())
+    hashed_password = bcrypt.hashpw(plain_password, bcrypt.gensalt())
+    # b64encode编码的结果是byte类型需要再转化为str
+    # baseed =
+
+    return base64.b64encode(hashed_password).decode('utf-8')
+
+
+def check_password(input, hashed_password):
+    """比较密码是否相同；bcrypt对密码进行加密的话，同一个密码加密得到的字符串也不相同，但bcrypt.checkpw比较明文和密文结果是true"""
+    hashed_password_bytes = base64.b64decode(hashed_password.encode('utf-8'))
+    input = input.encode('utf-8')
+    return bcrypt.checkpw(input, hashed_password_bytes)

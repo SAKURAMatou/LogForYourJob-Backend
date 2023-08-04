@@ -1,10 +1,13 @@
 from fastapi import Header, HTTPException, Depends, status
+from fastapi.security import OAuth2PasswordBearer
 
 from config import get_settings
 from dao.database import get_session
-from main import oauth2_scheme
+
 from login.loginCurd import get_user_guid
-from utils.JWTUtil import decrypt_and_check_expiration, hash_pwd
+from utils.JWTUtil import decrypt_and_check_expiration
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="rest/token")
 
 
 async def get_user_guid_token(token: str = Depends(oauth2_scheme)):

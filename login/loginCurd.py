@@ -47,6 +47,7 @@ def get_user_guid(guid: str, session: Session) -> User:
     return session.execute(select(User).where(User.rowguid == guid)).scalar()
 
 
-def get_user_one_field(key: str, value: str, session: Session) -> User:
-    stmt = select(User).where(User[key] == value)
-    return session.execute(stmt).scalar()
+def get_user_one_field(key: str, value: str, session: Session) -> list[User]:
+    stmt = text(f'select * from dml_user where {key}=:value')
+    # stmt = select(User).where(key == value)
+    return session.execute(stmt, {'value': value}).all()
