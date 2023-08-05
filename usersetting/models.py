@@ -1,6 +1,5 @@
 from datetime import datetime
 
-
 from sqlalchemy import String, Text, func, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, MappedAsDataclass
 
@@ -12,7 +11,7 @@ class User(Base):
     __tablename__ = "dml_user"
     rowguid: Mapped[str] = mapped_column(String(50), primary_key=True)
     pwd: Mapped[str] = mapped_column(Text)
-    avatarurl: Mapped[str] = mapped_column(Text)
+    avatarurl: Mapped[str] = mapped_column(Text, default=None)
     useremail: Mapped[str] = mapped_column(String(50))
     username: Mapped[str] = mapped_column(String(50))
     created_time: Mapped[datetime] = mapped_column(

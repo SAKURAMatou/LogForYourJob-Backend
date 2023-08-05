@@ -1,12 +1,13 @@
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 
 from login import routers as login
 from login import tokenRouter
+from logforjob import jobSearchRouters
 from dao.database import Base, engine
 from config import get_settings
 from utils.JWTUtil import refresh_token
+from logforjob.models import JobSearch
 
 app = FastAPI()
 
@@ -28,6 +29,7 @@ async def refresh_token_middleware(request: Request, call_next):
 
 app.include_router(tokenRouter.router)
 app.include_router(login.router)
+app.include_router(jobSearchRouters.router)
 
 # //根据模型创建对饮的数据表
 Base.metadata.create_all(bind=engine)
