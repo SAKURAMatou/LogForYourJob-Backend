@@ -3,9 +3,9 @@ import uuid
 from datetime import datetime, timedelta
 import time
 
-from sqlalchemy import select, func
+from logforjob.models import JobSearch, ResumeSend
+from logforjob.schema import ResumeSendSession
 
-from logforjob.models import JobSearch
 from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, decrypt_token, hash_pwd, check_password
 
 
@@ -54,3 +54,12 @@ class TestOne(unittest.TestCase):
         if "test":
             print('test')
 
+    def test_to_dict(self):
+        resum = ResumeSendSession(mguid='123456789', salary=15.2)
+        # print(resum.model_dump())
+        # model = ResumeSend(rowguid='12345566', userguid='12345566', cname='fdsfsdf', jobname='jobname')
+
+        # print(ResumeSend().to_dict(), model.to_dict_all(), model.to_dict().keys())
+        print(resum.model_dump(include={i for i in ResumeSend().to_dict_all().keys()}))
+        dump = resum.model_dump(include=ResumeSend().to_dict_all().keys())
+        print({k: v for k, v in dump.items() if v is not None})

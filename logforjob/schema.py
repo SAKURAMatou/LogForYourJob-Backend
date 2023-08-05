@@ -37,7 +37,7 @@ class JobSearchBase(JobBase):
         orm_mode = True
 
 
-class ResumeSend(JobBase):
+class ResumeSendBasic(JobBase):
     cname: Optional[str] = None
     mguid: str
     salary: Optional[float] = None
@@ -47,9 +47,10 @@ class ResumeSend(JobBase):
     jobname: Optional[str] = None
     requirement: Optional[str] = None
     comment: Optional[str] = None
+    guid: Optional[str] = None
 
 
-class ResumeSendCreate(ResumeSend):
+class ResumeSendCreate(ResumeSendBasic):
     """投递记录入参对象"""
     cpage: Optional[int] = 1
     pagesize: Optional[int] = 10
@@ -62,7 +63,7 @@ class ResumeSendSession(ResumeSendCreate):
     user: Optional[UserSession] = None
 
 
-class ResumeSendBase(ResumeSend):
+class ResumeSendBase(ResumeSendBasic):
     """投递记录的表实体对应"""
     rowguid: str
     sendtime: Optional[datetime] = None

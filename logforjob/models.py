@@ -31,3 +31,4 @@ class ResumeSend(Base):
     comment: Mapped[str] = mapped_column(Text, default=None, nullable=True)
     mguid = Column(String(50), ForeignKey("dml_job_search.rowguid"))
     userguid: Mapped[str] = mapped_column(String(50))
+    isdel: Mapped[bool] = mapped_column(Boolean, default=False)
