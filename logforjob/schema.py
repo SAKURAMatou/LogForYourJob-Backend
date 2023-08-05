@@ -17,7 +17,7 @@ class JobSearchCreate(BaseModel):
     name: Optional[str] = None
     startdate: Optional[date] = None
     enddate: Optional[date] = None
-    mname: Optional[str] = None
+    mguid: Optional[str] = None
 
 
 class JobSearchSession(JobSearchCreate):

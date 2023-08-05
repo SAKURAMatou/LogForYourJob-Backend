@@ -3,6 +3,9 @@ import uuid
 from datetime import datetime, timedelta
 import time
 
+from sqlalchemy import select, func
+
+from logforjob.models import JobSearch
 from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, decrypt_token, hash_pwd, check_password
 
 
@@ -50,3 +53,4 @@ class TestOne(unittest.TestCase):
         print(round(dif))
         if "test":
             print('test')
+
