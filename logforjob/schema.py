@@ -1,5 +1,5 @@
 """logforjob的pydantic模型"""
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, Union
 from pydantic import BaseModel
 
@@ -15,8 +15,8 @@ class JobSearchCreate(BaseModel):
     cpage: Optional[int] = 1
     pagesize: Optional[int] = 10
     name: Optional[str] = None
-    staredate: Optional[datetime] = None
-    enddate: Optional[datetime] = None
+    startdate: Optional[date] = None
+    enddate: Optional[date] = None
     mname: Optional[str] = None
 
 
