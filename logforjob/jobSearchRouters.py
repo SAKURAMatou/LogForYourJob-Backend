@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session
+from sqlalchemy.engine.row import Row
 
 from dao.database import get_session
 from dependencies import get_user_session
+from logforjob import jobCurd as job_curd
+from logforjob.models import ResumeSend
 from logforjob.schema import JobSearchCreate, JobSearchSession, ResumeSendCreate, ResumeSendSession
 from usersetting.schema import UserSession
 from utils.requestUtil import response
-import jobCurd as job_curd
 
 
 async def set_userguid_jobsearch(jobSearchCreate: JobSearchCreate, user: UserSession = Depends(get_user_session)):
@@ -22,20 +25,21 @@ router = APIRouter(prefix='/logforyourjobs')
 
 @router.post("/getmainlist")
 async def getmainlist(jobSearchCreate: JobSearchSession = Depends(set_userguid_jobsearch),
-                      session=Depends(get_session)):
+                      session: Session = Depends(get_session)):
     """获取求职经历列表"""
     res = {
         "count": 0,
         "currentpage": jobSearchCreate.cpage,
         "list": []
     }
+
     search_list = job_curd.get_job_search_list(jobSearchCreate, session)
     if not search_list:
         return response.success("求职经历列表查询成功！", res)
+
     res['count'] = job_curd.get_job_search_count(jobSearchCreate, session)
     res['list'] = search_list
     return response.success("求职经历列表查询成功！", res)
-    pass
 
 
 @router.post("/addJobSearchLog")
@@ -93,16 +97,37 @@ async def addSendLog(resumeSendSession: ResumeSendSession = Depends(set_user_res
 @router.post("/getsendList")
 async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_resume),
                         session: Session = Depends(get_session)):
+    """获取求职经历列表,分页"""
     res = {
         "count": 0,
         "currentpage": resumeSendSession.cpage,
         "list": []
     }
-    search_list = job_curd.get_resume_send_list(resumeSendSession, session)
+    resumeSend = ResumeSend()
+    # 搜索条件
+    # dump = resumeSendSession.model_dump(include=resumeSend.to_dict_all().keys())
+    if resumeSendSession.staredate:
+        resumeSend.great('sendtime', resumeSendSession.staredate)
+    if resumeSendSession.enddate:
+        resumeSend.less('sendtime', resumeSendSession.enddate)
+    if resumeSendSession.cname:
+        resumeSend.like('cname', resumeSendSession.cname)
+    if resumeSendSession.heartlevel:
+        resumeSend.equal('heartlevel', resumeSendSession.heartlevel)
+
+    resumeSend.text_sql("heartlevel='4'")
+
+    search_list = resumeSend.get_sql_page(session=session, currentPage=resumeSendSession.cpage,
+                                          pagesize=resumeSendSession.pagesize,
+                                          orderby=resumeSend.sendtime)
+    # search_list = session.scalar(sql)
     if not search_list:
-        return response.success("投递列表查询成功", res)
-    res['count'] = job_curd.get_resume_send_count(resumeSendSession, session)
+        return response.success("求职经历列表查询成功！", res)
+
+    count_sql = resumeSend.get_sql_select(func.count("*").label("count"), session=session)
+    res['count'] = count_sql.scalar()
     res['list'] = search_list
+
     return response.success("投递列表查询成功", res)
 
 
@@ -134,6 +159,8 @@ async def deleteSendLog(resumeSendSession: ResumeSendSession = Depends(set_user_
 async def modify_send(resumeSendSession: ResumeSendSession = Depends(set_user_resume),
                       session: Session = Depends(get_session)):
     """修改投递记录"""
+    if not resumeSendSession.guid:
+        return response.fail("投递标识必填！")
     job_curd.update_resume_send(resumeSendSession, session)
     session.commit()
     return response.success("修改投递记录成功!")

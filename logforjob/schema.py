@@ -39,9 +39,9 @@ class JobSearchBase(JobBase):
 
 class ResumeSendBasic(JobBase):
     cname: Optional[str] = None
-    mguid: str
+    mguid: Optional[str] = None
     salary: Optional[float] = None
-    heartlevel: Optional[str] = 3
+    heartlevel: Optional[str] = None
     cwebsite: Optional[str] = None
     jobdescription: Optional[str] = None
     jobname: Optional[str] = None

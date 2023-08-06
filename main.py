@@ -31,6 +31,13 @@ app.include_router(tokenRouter.router)
 app.include_router(login.router)
 app.include_router(jobSearchRouters.router)
 
+
+@app.get('/refresh')
+async def refresh():
+    """发现uvicorn的热部署需要请求一次接口才能完全热部署完成，"""
+    pass
+
+
 # //根据模型创建对饮的数据表
 Base.metadata.create_all(bind=engine)
 

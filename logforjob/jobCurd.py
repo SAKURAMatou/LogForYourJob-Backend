@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
-from sqlalchemy import select, desc, func, update
+from sqlalchemy import select, desc, func, update, and_
 from sqlalchemy.orm import Session, Query
 
 from logforjob.schema import JobSearchSession, JobSearchBase, ResumeSendSession
@@ -57,19 +57,9 @@ def get_job_search_count(jobSearchSession: JobSearchSession, session: Session) -
     return session.execute(query).scalar()
 
 
-def get_resume_send_list(resumeSendSession: ResumeSendSession, session: Session) -> list[ResumeSend]:
-    """查询投递列表，分页"""
-    return None
-
-
-def get_resume_send_count(resumeSendSession: ResumeSendSession, session: Session) -> int:
-    """投递总数"""
-
-    return 0
-
-
 def add_resume_send(resumeSendSession: ResumeSendSession, session: Session):
     """添加投递记录"""
+    # dump = resumeSendSession.model_dump(include=ResumeSend().to_dict_all().keys())
     resumeSend = ResumeSend(**resumeSendSession.model_dump())
     resumeSend.rowguid = str(uuid4())
     resumeSend.sendtime = datetime.now()
@@ -90,11 +80,12 @@ def delete_resume_send(resumeSendSession: ResumeSendSession, session: Session):
 
 
 def update_resume_send(resumeSendSession: ResumeSendSession, session: Session):
-    """更新数据"""
+    """更新数据，不定字段，只更新入参中有值的字段"""
     sql = update(ResumeSend).where(ResumeSend.rowguid == resumeSendSession.guid)
     # 入参转化为dict只保留ORM中有的字段
     dump = resumeSendSession.model_dump(include=ResumeSend().to_dict_all().keys())
     # 排除掉需要更新的字段中的空值
     sql = sql.values({k: v for k, v in dump.items() if v is not None})
-    print(sql)
+    # print(sql)
+    session.execute(sql)
     return None
