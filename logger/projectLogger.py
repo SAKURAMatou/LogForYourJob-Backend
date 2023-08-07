@@ -19,7 +19,7 @@ if not os.path.exists(applog_folder):
 
 log_file_path = os.path.join(applog_folder, 'logger_{time:YYYY_MM_DD}.log')
 # serialize=True:日志在传递给loguru的日志接收器之前都会序列化为json,包含很多线程等信息
-log_format = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | {level} |  <cyan>{module}:{function}:{line}</cyan> - <level>{message}</level>"
+log_format = "<green>{time:YYYY-MM-DD HH:mm:ss}</green> | {level} |  <cyan>{name}:{function}:{line}</cyan> - <level>{message}</level>"
 
 logger.add(log_file_path, format=log_format, rotation='100 MB',
            backtrace=True, level="INFO")

@@ -58,7 +58,7 @@ class InterceptHandler(logging.Handler):
 logging.basicConfig(handlers=[InterceptHandler()], level=0)
 
 # Redirect Uvicorn logs
-for name in ("uvicorn", "uvicorn.error", "fastapi"):
+for name in ("uvicorn", "uvicorn.error", 'uvicorn.access', "fastapi"):
     logging_logger = logging.getLogger(name)
     logging_logger.handlers = [InterceptHandler()]
 
@@ -80,4 +80,4 @@ setup_logging()
 Base.metadata.create_all(bind=engine)
 
 if __name__ == "__main__":
-    uvicorn.run(app="main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(app="main:app", host="127.0.0.1", port=8000, reload=True, reload_excludes=['*/applog/*'])
