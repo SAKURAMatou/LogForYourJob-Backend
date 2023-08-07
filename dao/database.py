@@ -2,7 +2,7 @@ from typing import Any, List
 
 from sqlalchemy.orm import DeclarativeBase, Session
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine, Select, and_, select, desc, asc, CursorResult, RowMapping, text
+from sqlalchemy import create_engine, Select, and_, select, desc, asc, CursorResult, RowMapping, text, inspect
 from contextlib import contextmanager
 from config import get_database
 
@@ -60,6 +60,12 @@ class Base(DeclarativeBase):
         """ORM转dict，全字段"""
         return {c.name: getattr(self, c.name) for c in self.__table__.columns}
 
+    @classmethod
+    def get_columns(cls) -> list[str]:
+        """获取当前表实体的所有列名"""
+        inspector = inspect(cls)
+        return [column.key for column in inspector.attrs]
+
     def where_condition(self) -> list:
         conditions = []
         columns = self.__table__.columns
@@ -82,25 +88,10 @@ class Base(DeclarativeBase):
         if len(self._text_sql) > 0:
             for i in self._text_sql:
                 conditions.append(text(i))
-        # if len(self._equal_conditions) > 0:
-        #     for i in self._equal_conditions:
-        #         for key, value in i.items():
-        #             conditions.append(f'{key} == {value}')
-        # if len(self._less_conditions) > 0:
-        #     for i in self._less_conditions:
-        #         for key, value in i.items():
-        #             conditions.append(f'{key} < {value}')
-        # if len(self._great_conditions) > 0:
-        #     for i in self._great_conditions:
-        #         for key, value in i.items():
-        #             conditions.append(f'{key} > {value}')
-        # if len(self._like_conditions) > 0:
-        #     for i in self._like_conditions:
-        #         for key, value in i.items():
-        #             conditions.append(f'{key} like {value}')
+
         return conditions
 
-    def get_sql_select(self, *columns, session: Session) -> CursorResult:
+    def sql_select(self, *columns, session: Session) -> CursorResult:
         """
         执行select语句，select的返回结果比较多样，方法直接返回CursorResult，需要对函数返回值进行后续操作，需要列表时需要手动执行all，需要单个值的话执行scalar;
         查询count时传入对应的count表达式，例如func.count("*").label("count")
@@ -114,12 +105,12 @@ class Base(DeclarativeBase):
             sql = sql.where(and_(*conditions))
         return session.execute(sql)
 
-    def get_sql_page(self, *columns, session: Session, currentPage=1, pagesize=10, orderby=None,
-                     order='desc') -> list[RowMapping]:
+    def sql_page(self, session: Session, currentPage=1, pagesize=10, orderby=None,
+                 order='desc', *columns) -> list[RowMapping]:
         """分页查询数据；返回结果是list[RowMapping]，通用查询方法，没有指定model，返回结果默认是Row，
         row类型类似tuple没有__dict__的默认函数，直接作为返回值会有异常
         ；默认值：currentPage=1, pagesize=10, order='desc'"""
-        if not columns:
+        if len(columns) > 0:
             # columns = self.__table__.columns
             sql = select(self.__class__)
         else:
@@ -141,6 +132,24 @@ class Base(DeclarativeBase):
         res = session.execute(sql).all()
         # return res
         return [row._mapping for row in res]
+
+    @classmethod
+    def get_by_guid(cls, guid: str, session: Session, *columns) -> Any:
+        """类方法，不是属性方法，根据主键查询一条表记录"""
+        inspector = inspect(cls)
+        sql = select(cls)
+        if len(columns) > 0:
+            sql = select(*columns).select_from(cls.__table__)
+        # inspector包含了表实体的信息，inspector.primary_key是一个tuple类型记录了主键列
+        sql = sql.where(inspector.primary_key[0] == guid)
+        return session.scalar(sql)
+
+    def update_self_value(self, waitUpdate: dict):
+        """根据传入的字典修改对应的属性值，不会更新数据库的值，需要提交事务则手动执行session.commit()"""
+        # noNone = {k: v for k, v in waitUpdate.items() if v is not None}
+        for k, v in waitUpdate.items():
+            if v:
+                setattr(self, k, v)
 
 
 def get_session():

@@ -34,11 +34,12 @@ async def getmainlist(jobSearchCreate: JobSearchSession = Depends(set_userguid_j
     }
 
     search_list = job_curd.get_job_search_list(jobSearchCreate, session)
-    if not search_list:
+
+    if not search_list.first():
         return response.success("求职经历列表查询成功！", res)
 
     res['count'] = job_curd.get_job_search_count(jobSearchCreate, session)
-    res['list'] = search_list
+    res['list'] = search_list.all()
     return response.success("求职经历列表查询成功！", res)
 
 
@@ -115,16 +116,16 @@ async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_
     if resumeSendSession.heartlevel:
         resumeSend.equal('heartlevel', resumeSendSession.heartlevel)
 
-    resumeSend.text_sql("heartlevel='4'")
+    # resumeSend.text_sql("heartlevel='4'")
 
-    search_list = resumeSend.get_sql_page(session=session, currentPage=resumeSendSession.cpage,
-                                          pagesize=resumeSendSession.pagesize,
-                                          orderby=resumeSend.sendtime)
+    search_list = resumeSend.sql_page(session=session, currentPage=resumeSendSession.cpage,
+                                      pagesize=resumeSendSession.pagesize,
+                                      orderby=resumeSend.sendtime)
     # search_list = session.scalar(sql)
     if not search_list:
         return response.success("求职经历列表查询成功！", res)
 
-    count_sql = resumeSend.get_sql_select(func.count("*").label("count"), session=session)
+    count_sql = resumeSend.sql_select(func.count("*").label("count"), session=session)
     res['count'] = count_sql.scalar()
     res['list'] = search_list
 
@@ -137,7 +138,8 @@ async def getSendLogDetail(resumeSendSession: ResumeSendSession = Depends(set_us
     """获取投递详情"""
     if not resumeSendSession.guid:
         return response.fail(531, "投递标识必填！")
-    res = job_curd.get_resume_send_guid(resumeSendSession.guid, session)
+    # res = job_curd.get_resume_send_guid(resumeSendSession.guid, session)
+    res = ResumeSend.get_by_guid(resumeSendSession.guid, session)
     if not res:
         return response.fail(531, "投递详情不存在")
     return response.success("获取投递详情成功！", res)
@@ -161,6 +163,12 @@ async def modify_send(resumeSendSession: ResumeSendSession = Depends(set_user_re
     """修改投递记录"""
     if not resumeSendSession.guid:
         return response.fail("投递标识必填！")
-    job_curd.update_resume_send(resumeSendSession, session)
+    # job_curd.update_resume_send(resumeSendSession, session)
+    resume_send = ResumeSend.get_by_guid(resumeSendSession.guid, session)
+    if not resume_send:
+        return response.fail(533, "数据不存在！")
+
+    update_colums = resumeSendSession.model_dump(include=ResumeSend.get_columns())
+    resume_send.update_record_nocommit(update_colums)
     session.commit()
     return response.success("修改投递记录成功!")

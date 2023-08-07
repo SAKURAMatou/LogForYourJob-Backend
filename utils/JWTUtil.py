@@ -18,7 +18,7 @@ def encrypt_and_expire(data: str, secret_key: str, expire_duration: int = 60):
     # 创建JWT payload
     payload = {
         'data': data,
-        'exp': expire_time
+        'exp': int(expire_time.timestamp())
     }
     # 生成JWT令牌
     token = jwt.encode(payload, secret_key, algorithm='HS256')

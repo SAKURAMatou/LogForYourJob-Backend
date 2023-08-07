@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import select, desc, func, update, and_
+from sqlalchemy import select, desc, func, update, and_, ScalarResult
 from sqlalchemy.orm import Session, Query
 
 from logforjob.schema import JobSearchSession, JobSearchBase, ResumeSendSession
@@ -26,7 +27,7 @@ def get_job_search_guid(guid: str, session: Session) -> JobSearch:
     return session.execute(sql).scalar()
 
 
-def get_job_search_list(jobSearchSession: JobSearchSession, session: Session) -> list[JobSearch]:
+def get_job_search_list(jobSearchSession: JobSearchSession, session: Session) -> ScalarResult[Any]:
     """获取求职经历列表，分页"""
     sql = select(JobSearch).where(JobSearch.userguid == jobSearchSession.user.rowguid)
     page_size = jobSearchSession.pagesize
@@ -41,7 +42,7 @@ def get_job_search_list(jobSearchSession: JobSearchSession, session: Session) ->
 
     sql = sql.order_by(desc(JobSearch.starttime)).offset(offset).limit(page_size)
 
-    return session.scalars(sql).all()
+    return session.scalars(sql)
 
 
 def get_job_search_count(jobSearchSession: JobSearchSession, session: Session) -> int:
@@ -70,12 +71,12 @@ def add_resume_send(resumeSendSession: ResumeSendSession, session: Session):
 def get_resume_send_guid(guid: str, session: Session) -> ResumeSend:
     """根据主键获取投递详情"""
     sql = select(ResumeSend).where(ResumeSend.rowguid == guid)
-    return session.scalars(sql)
+    return session.scalar(sql)
 
 
 def delete_resume_send(resumeSendSession: ResumeSendSession, session: Session):
     """删除投递记录,逻辑删除，不是物理删除"""
-    sql = update(ResumeSend).where(ResumeSend.rowguid == resumeSendSession.guid).values(ResumeSend.isdel == True)
+    sql = update(ResumeSend).where(ResumeSend.rowguid == resumeSendSession.guid).values(isdel=True)
     session.execute(sql)
 
 
