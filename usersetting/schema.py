@@ -16,5 +16,10 @@ class UserCreate(UserBase):
     pwd: str
 
 
+class UserLogin(BaseModel):
+    name: str
+    pwd: str
+
+
 class UserSession(UserBase):
     rowguid: str

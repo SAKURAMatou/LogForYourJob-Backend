@@ -37,6 +37,14 @@ class JobSearchBase(JobBase):
         orm_mode = True
 
 
+class JobSearchResponse(BaseModel):
+    guid: Optional[str] = None
+    name: Optional[str] = None
+    staredate: Optional[str] = None
+    enddate: Optional[str] = None
+    isend: Optional[str] = None
+
+
 class ResumeSendBasic(JobBase):
     cname: Optional[str] = None
     mguid: Optional[str] = None
@@ -70,3 +78,16 @@ class ResumeSendBase(ResumeSendBasic):
 
     class Config:
         orm_mode = True
+
+
+class ResumeSendResponse(BaseModel):
+    guid: Optional[str] = None
+    cname: Optional[str] = None
+    jobname: Optional[str] = None
+    salary: Union[str, float] = None
+    sendtime: Union[str, datetime] = None
+    requirement: Optional[str] = None
+    heartlevel: Optional[str] = None
+    jobdescription: Optional[str] = None
+    comment: Optional[str] = None
+    mguid: Optional[str] = None

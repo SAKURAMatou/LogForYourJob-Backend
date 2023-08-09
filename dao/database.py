@@ -112,9 +112,9 @@ class Base(DeclarativeBase):
         ；默认值：currentPage=1, pagesize=10, order='desc'"""
         if len(columns) > 0:
             # columns = self.__table__.columns
-            sql = select(self.__class__)
-        else:
             sql = select(*columns).select_from(self.__table__)
+        else:
+            sql = select(self.__class__)
 
         # 获取搜索条件列表
         conditions = self.where_condition()

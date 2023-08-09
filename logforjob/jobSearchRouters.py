@@ -1,13 +1,15 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from sqlalchemy.engine.row import Row
 
 from dao.database import get_session
 from dependencies import get_user_session
 from logforjob import jobCurd as job_curd
 from logforjob.models import ResumeSend
-from logforjob.schema import JobSearchCreate, JobSearchSession, ResumeSendCreate, ResumeSendSession
+from logforjob.schema import JobSearchCreate, JobSearchSession, ResumeSendCreate, ResumeSendSession, JobSearchResponse, \
+    ResumeSendResponse
 from usersetting.schema import UserSession
 from utils.requestUtil import response
 
@@ -33,13 +35,27 @@ async def getmainlist(jobSearchCreate: JobSearchSession = Depends(set_userguid_j
         "list": []
     }
 
-    search_list = job_curd.get_job_search_list(jobSearchCreate, session)
+    search_list = job_curd.get_job_search_list(jobSearchCreate, session).all()
 
-    if not search_list.first():
+    if not search_list and len(search_list) > 0:
         return response.success("求职经历列表查询成功！", res)
 
+    res_list = []
+    for item in search_list:
+        res_item = JobSearchResponse(guid=item.rowguid, name=item.search_name)
+        res_item.isend = '1' if item.isfinish else '0'
+        if item.starttime:
+            res_item.staredate = item.starttime.strftime('%Y-%m-%d')
+        else:
+            res_item.staredate = '--'
+        if item.endtime:
+            res_item.enddate = item.endtime.strftime('%Y-%m-%d')
+        else:
+            res_item.enddate = '--'
+        res_list.append(res_item)
+
     res['count'] = job_curd.get_job_search_count(jobSearchCreate, session)
-    res['list'] = search_list.all()
+    res['list'] = res_list
     return response.success("求职经历列表查询成功！", res)
 
 
@@ -98,7 +114,9 @@ async def addSendLog(resumeSendSession: ResumeSendSession = Depends(set_user_res
 @router.post("/getsendList")
 async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_resume),
                         session: Session = Depends(get_session)):
-    """获取求职经历列表,分页"""
+    """获取求职经历列表,分页；要求入参必须有对应的mguid"""
+    if not resumeSendSession.mguid:
+        response.fail(531, 'mguid必填！')
     res = {
         "count": 0,
         "currentpage": resumeSendSession.cpage,
@@ -116,7 +134,9 @@ async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_
     if resumeSendSession.heartlevel:
         resumeSend.equal('heartlevel', resumeSendSession.heartlevel)
 
-    # resumeSend.text_sql("heartlevel='4'")
+    # 默认条件时没有删除的数据
+    resumeSend.equal('mguid', resumeSendSession.mguid)
+    resumeSend.equal('isdel', False)
 
     search_list = resumeSend.sql_page(session=session, currentPage=resumeSendSession.cpage,
                                       pagesize=resumeSendSession.pagesize,
@@ -125,9 +145,30 @@ async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_
     if not search_list:
         return response.success("求职经历列表查询成功！", res)
 
+    res_lsit = []
+    for resItem in search_list:
+
+        if isinstance(resItem.get("ResumeSend"), ResumeSend):
+            item = ResumeSendResponse(**resItem.get("ResumeSend").to_dict())
+            if isinstance(item.sendtime, datetime):
+                item.sendtime = item.sendtime.strftime('%Y-%m-%d %H:%M:%S')
+            res_lsit.append(item)
+        else:
+            item = ResumeSendResponse()
+            item.guid = resItem.get("ResumeSend").rowguid
+            item.cname = resItem.get("ResumeSend").cname
+            item.heartlevel = resItem.get("ResumeSend").heartlevel
+            if resItem.get("ResumeSend").sendtime:
+                item.sendtime = resItem.get("ResumeSend").sendtime.strftime('%Y-%m-%d %H:%M:%S')
+            item.jobname = resItem.get("ResumeSend").jobname
+            item.salary = str(resItem.get("ResumeSend").salary)
+            item.requirement = resItem.get("ResumeSend").requirement
+            item.mguid = resItem.get("ResumeSend").mguid
+            res_lsit.append(item)
+
     count_sql = resumeSend.sql_select(func.count("*").label("count"), session=session)
     res['count'] = count_sql.scalar()
-    res['list'] = search_list
+    res['list'] = res_lsit
 
     return response.success("投递列表查询成功", res)
 

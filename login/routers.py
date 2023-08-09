@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from dao.database import get_session
 from dependencies import get_user_token
-from usersetting.schema import UserCreate
+from usersetting.schema import UserCreate, UserLogin
 from .loginCurd import user_register, user_active, get_user_one_field
 from utils.requestUtil import response
 from config import get_settings
@@ -25,11 +25,11 @@ async def register(userCreate: UserCreate, session=Depends(get_session)):
 
 
 @router.post("/login")
-async def login(userCreate: UserCreate, session=Depends(get_session)):
+async def login(userLogin: UserLogin, session=Depends(get_session)):
     """用户登录"""
-    users = get_user_one_field('useremail', userCreate.username, session)
+    users = get_user_one_field('useremail', userLogin.name, session)
     if not users:
-        users = get_user_one_field('phone', userCreate.username, session)
+        users = get_user_one_field('phone', userLogin.name, session)
 
     if users is None:
         return response.fail(521, "用户不存在")
@@ -37,7 +37,7 @@ async def login(userCreate: UserCreate, session=Depends(get_session)):
     settings = get_settings()
     token = ''
     # 比较密码是否相同,
-    if not check_password(userCreate.pwd, user.pwd):
+    if not check_password(userLogin.pwd, user.pwd):
         return response.fail(531, "用户名或密码错误！")
     if not user.isenable:
         return response.fail(532, "用户已被禁用，或尚未激活！")
