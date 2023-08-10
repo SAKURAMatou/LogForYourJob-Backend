@@ -4,6 +4,9 @@ from sqlalchemy.orm import DeclarativeBase, Session
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, Select, and_, select, desc, asc, CursorResult, RowMapping, text, inspect
 from contextlib import contextmanager
+
+from sqlalchemy.sql.base import ExecutableOption
+
 from config import get_database
 
 # 获取数据库连接信息
@@ -91,22 +94,26 @@ class Base(DeclarativeBase):
 
         return conditions
 
-    def sql_select(self, *columns, session: Session) -> CursorResult:
+    def sql_select(self, session: Session, options: ExecutableOption, *columns) -> CursorResult:
         """
         执行select语句，select的返回结果比较多样，方法直接返回CursorResult，需要对函数返回值进行后续操作，需要列表时需要手动执行all，需要单个值的话执行scalar;
         查询count时传入对应的count表达式，例如func.count("*").label("count")
         """
         if not columns:
             columns = self.__class__
+
         # 获取搜索条件列表
         conditions = self.where_condition()
         sql = select(*columns).select_from(self.__table__)
+        if options:
+            sql = sql.options(options)
+
         if len(conditions) > 0:
             sql = sql.where(and_(*conditions))
         return session.execute(sql)
 
     def sql_page(self, session: Session, currentPage=1, pagesize=10, orderby=None,
-                 order='desc', *columns) -> list[RowMapping]:
+                 order='desc', options: ExecutableOption = None, *columns) -> list[RowMapping]:
         """分页查询数据；返回结果是list[RowMapping]，通用查询方法，没有指定model，返回结果默认是Row，
         row类型类似tuple没有__dict__的默认函数，直接作为返回值会有异常
         ；默认值：currentPage=1, pagesize=10, order='desc'"""
@@ -116,6 +123,8 @@ class Base(DeclarativeBase):
         else:
             sql = select(self.__class__)
 
+        if options:
+            sql = sql.options(options)
         # 获取搜索条件列表
         conditions = self.where_condition()
         # conditions = []
@@ -134,12 +143,16 @@ class Base(DeclarativeBase):
         return [row._mapping for row in res]
 
     @classmethod
-    def get_by_guid(cls, guid: str, session: Session, *columns) -> Any:
-        """类方法，不是属性方法，根据主键查询一条表记录"""
+    def get_by_guid(cls, guid: str, session: Session, options: ExecutableOption, *columns) -> Any:
+        """
+        类方法，不是属性方法，根据主键查询一条表记录;
+        option:查询条件"""
         inspector = inspect(cls)
         sql = select(cls)
         if len(columns) > 0:
             sql = select(*columns).select_from(cls.__table__)
+        if options:
+            sql = sql.options(options)
         # inspector包含了表实体的信息，inspector.primary_key是一个tuple类型记录了主键列
         sql = sql.where(inspector.primary_key[0] == guid)
         return session.scalar(sql)

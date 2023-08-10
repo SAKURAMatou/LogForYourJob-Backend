@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import String, Boolean, Float, Text, ForeignKey, Column
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from dao.database import Base
 
@@ -14,6 +14,7 @@ class JobSearch(Base):
     endtime: Mapped[datetime] = mapped_column(default=None, nullable=True)
     isfinish: Mapped[bool] = mapped_column(Boolean, default=False, nullable=True)
     userguid: Mapped[str] = mapped_column(String(50))
+    resume_sends = relationship("ResumeSend", back_populates="job_search")
 
 
 class ResumeSend(Base):
@@ -32,3 +33,4 @@ class ResumeSend(Base):
     mguid = Column(String(50), ForeignKey("dml_job_search.rowguid"))
     userguid: Mapped[str] = mapped_column(String(50))
     isdel: Mapped[bool] = mapped_column(Boolean, default=False)
+    job_search = relationship("JobSearch", back_populates="resume_sends")

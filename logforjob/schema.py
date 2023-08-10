@@ -91,3 +91,4 @@ class ResumeSendResponse(BaseModel):
     jobdescription: Optional[str] = None
     comment: Optional[str] = None
     mguid: Optional[str] = None
+    mname: Optional[str] = None

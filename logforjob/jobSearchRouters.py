@@ -2,7 +2,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from dao.database import get_session
 from dependencies import get_user_session
@@ -180,10 +180,13 @@ async def getSendLogDetail(resumeSendSession: ResumeSendSession = Depends(set_us
     if not resumeSendSession.guid:
         return response.fail(531, "投递标识必填！")
     # res = job_curd.get_resume_send_guid(resumeSendSession.guid, session)
-    res = ResumeSend.get_by_guid(resumeSendSession.guid, session)
+    res = ResumeSend.get_by_guid(resumeSendSession.guid, session, options=joinedload(ResumeSend.job_search))
     if not res:
         return response.fail(531, "投递详情不存在")
-    return response.success("获取投递详情成功！", res)
+    resumeSendResponse = ResumeSendResponse(**res.to_dict())
+    resumeSendResponse.guid = res.rowguid
+    resumeSendResponse.mname = res.job_search.search_name
+    return response.success("获取投递详情成功！", resumeSendResponse)
 
 
 @router.post("/deleteSendLog")
