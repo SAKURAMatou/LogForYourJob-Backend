@@ -8,6 +8,11 @@ from pydantic import BaseModel, field_validator
 from utils.JWTUtil import encrypt_and_expire
 
 
+def sql_page(session: str, currentPage=1, pagesize=10, orderby=None,
+             order='desc', options: str = None, *columns):
+    print(session, currentPage, pagesize, orderby, order, options, columns)
+
+
 class Item(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
@@ -24,6 +29,7 @@ class TestTwo(unittest.TestCase):
     def test_field_validator(self):
         item = Item(name="", description='')
         print(item)
+        sql_page(session="session-valeu", currentPage=1, pagesize=10, orderby='name')
 
     def test_to_dict1(self):
         l = ['rowguid', 'cname', 'jobname', 'userguid']

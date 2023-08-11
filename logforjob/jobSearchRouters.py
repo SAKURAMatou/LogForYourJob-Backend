@@ -142,9 +142,9 @@ async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_
     resumeSend.equal('mguid', resumeSendSession.mguid)
     resumeSend.equal('isdel', False)
 
-    search_list = resumeSend.sql_page(session=session, currentPage=resumeSendSession.cpage,
-                                      pagesize=resumeSendSession.pagesize,
-                                      orderby=resumeSend.sendtime)
+    search_list = resumeSend.sql_page(session, resumeSendSession.cpage,
+                                      resumeSendSession.pagesize,
+                                      'sendtime')
     # search_list = session.scalar(sql)
     if not search_list:
         return response.success("求职经历列表查询成功！", res)

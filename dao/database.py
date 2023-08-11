@@ -131,7 +131,10 @@ class Base(DeclarativeBase):
         # sql = select(*columns).select_from(self.__table__)
         if len(conditions) > 0:
             sql = sql.where(and_(*conditions))
+        orderby_columns = None
         if orderby:
+            orderby_columns = self.__table__.columns[orderby]
+        if orderby_columns is not None:
             if 'desc' == order:
                 sql = sql.order_by(desc(orderby))
             else:
