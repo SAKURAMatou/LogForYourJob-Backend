@@ -45,9 +45,9 @@ async def getmainlist(jobSearchCreate: JobSearchSession = Depends(set_userguid_j
         res_item = JobSearchResponse(guid=item.rowguid, name=item.search_name)
         res_item.isend = '1' if item.isfinish else '0'
         if item.starttime:
-            res_item.staredate = item.starttime.strftime('%Y-%m-%d')
+            res_item.startdate = item.starttime.strftime('%Y-%m-%d')
         else:
-            res_item.staredate = '--'
+            res_item.startdate = '--'
         if item.endtime:
             res_item.enddate = item.endtime.strftime('%Y-%m-%d')
         else:
@@ -125,7 +125,7 @@ async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_
     resumeSend = ResumeSend()
     # 搜索条件
     # dump = resumeSendSession.model_dump(include=resumeSend.to_dict_all().keys())
-    if resumeSendSession.staredate:
+    if resumeSendSession.startdate:
         resumeSend.great('sendtime', resumeSendSession.staredate)
     if resumeSendSession.enddate:
         resumeSend.less('sendtime', resumeSendSession.enddate)
@@ -133,6 +133,10 @@ async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_
         resumeSend.like('cname', resumeSendSession.cname)
     if resumeSendSession.heartlevel:
         resumeSend.equal('heartlevel', resumeSendSession.heartlevel)
+    if resumeSendSession.salarydown:
+        resumeSend.great('salary', resumeSendSession.salary)
+    if resumeSendSession.salaryup:
+        resumeSend.less('salary', resumeSendSession.salary)
 
     # 默认条件时没有删除的数据
     resumeSend.equal('mguid', resumeSendSession.mguid)
@@ -150,8 +154,10 @@ async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_
 
         if isinstance(resItem.get("ResumeSend"), ResumeSend):
             item = ResumeSendResponse(**resItem.get("ResumeSend").to_dict())
+            item.guid = resItem.get("ResumeSend").rowguid
+            item.mname = resItem.get("ResumeSend").job_search.search_name
             if isinstance(item.sendtime, datetime):
-                item.sendtime = item.sendtime.strftime('%Y-%m-%d %H:%M:%S')
+                item.sendtime = item.sendtime.strftime('%Y-%m-%d %H:%M')
             res_lsit.append(item)
         else:
             item = ResumeSendResponse()
@@ -164,9 +170,10 @@ async def get_send_list(resumeSendSession: ResumeSendSession = Depends(set_user_
             item.salary = str(resItem.get("ResumeSend").salary)
             item.requirement = resItem.get("ResumeSend").requirement
             item.mguid = resItem.get("ResumeSend").mguid
+            item.mname = resItem.get("ResumeSend").job_search.search_name
             res_lsit.append(item)
 
-    count_sql = resumeSend.sql_select(func.count("*").label("count"), session=session)
+    count_sql = resumeSend.sql_select(session, None, func.count("*").label("count"))
     res['count'] = count_sql.scalar()
     res['list'] = res_lsit
 
@@ -213,6 +220,6 @@ async def modify_send(resumeSendSession: ResumeSendSession = Depends(set_user_re
         return response.fail(533, "数据不存在！")
 
     update_colums = resumeSendSession.model_dump(include=ResumeSend.get_columns())
-    resume_send.update_record_nocommit(update_colums)
+    resume_send.update_self_value(update_colums)
     session.commit()
     return response.success("修改投递记录成功!")

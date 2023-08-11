@@ -1,7 +1,7 @@
 """logforjob的pydantic模型"""
 from datetime import datetime, date
 from typing import Optional, Union
-from pydantic import BaseModel
+from pydantic import BaseModel, validator, field_validator
 
 from usersetting.schema import UserSession
 
@@ -40,7 +40,7 @@ class JobSearchBase(JobBase):
 class JobSearchResponse(BaseModel):
     guid: Optional[str] = None
     name: Optional[str] = None
-    staredate: Optional[str] = None
+    startdate: Optional[str] = None
     enddate: Optional[str] = None
     isend: Optional[str] = None
 
@@ -62,8 +62,18 @@ class ResumeSendCreate(ResumeSendBasic):
     """投递记录入参对象"""
     cpage: Optional[int] = 1
     pagesize: Optional[int] = 10
-    staredate: Optional[datetime] = None
+    startdate: Optional[datetime] = None
     enddate: Optional[datetime] = None
+    salaryup: Optional[float] = None
+    salarydown: Optional[float] = None
+
+    @field_validator("startdate", 'enddate', 'heartlevel', mode='before')
+    def empty_str_to_none(cls, v):
+        return None if v == "" else v
+
+    @field_validator('salaryup', 'salarydown', mode='before')
+    def int_zero_to_none(cls, v):
+        return None if v == 0 else v
 
 
 class ResumeSendSession(ResumeSendCreate):

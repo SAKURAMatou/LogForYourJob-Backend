@@ -143,7 +143,7 @@ class Base(DeclarativeBase):
         return [row._mapping for row in res]
 
     @classmethod
-    def get_by_guid(cls, guid: str, session: Session, options: ExecutableOption, *columns) -> Any:
+    def get_by_guid(cls, guid: str, session: Session, options: ExecutableOption = None, *columns) -> Any:
         """
         类方法，不是属性方法，根据主键查询一条表记录;
         option:查询条件"""

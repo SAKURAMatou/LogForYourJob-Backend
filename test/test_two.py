@@ -1,11 +1,30 @@
 import time
 import unittest
 from datetime import timedelta, datetime, tzinfo
+from typing import Optional
+
+from pydantic import BaseModel, field_validator
 
 from utils.JWTUtil import encrypt_and_expire
 
 
+class Item(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
+    @field_validator('description', 'name', mode='before')
+    @classmethod
+    def empty_str_to_none(cls, v):
+        print('empty_str_to_none', v)
+        return None if v == "" else v
+
+
 class TestTwo(unittest.TestCase):
+
+    def test_field_validator(self):
+        item = Item(name="", description='')
+        print(item)
+
     def test_to_dict1(self):
         l = ['rowguid', 'cname', 'jobname', 'userguid']
         print('result', {i for i in l})
