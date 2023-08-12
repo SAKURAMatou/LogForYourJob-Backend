@@ -1,7 +1,7 @@
 """pydantic的数据模型"""
 from typing import Union, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class UserBase(BaseModel):
@@ -30,3 +30,7 @@ class UserBasicInfoEdit(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
     avatarguid: Optional[str] = None
+
+    @field_validator("name", 'email', 'avatarguid', mode='before')
+    def empty_str_to_none(cls, v):
+        return None if v == "" else v

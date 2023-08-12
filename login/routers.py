@@ -43,7 +43,12 @@ async def login(userLogin: UserLogin, session=Depends(get_session)):
         return response.fail(532, "用户已被禁用，或尚未激活！")
     # 密码相同则登录成功，生成token
     token = encrypt_and_expire(user.rowguid, settings.secret_key)
-    return response.success("登录成功", {'token': token, 'avatarurl': user.avatarurl, 'useremail': user.useremail,
+    # 拼接用户头像的访问地址:host/url
+    host = settings.system_host.strip("/")
+    base_url = user.avatarurl.strip("/")
+
+    avatarurl = f'{host}/{base_url}'
+    return response.success("登录成功", {'token': token, 'avatarurl': avatarurl, 'useremail': user.useremail,
                                      'username': user.username})
 
 

@@ -87,7 +87,7 @@ def hash_pwd(pwd: str) -> str:
     return base64.b64encode(hashed_password).decode('utf-8')
 
 
-def check_password(input, hashed_password):
+def check_password(input, hashed_password) -> bool:
     """比较密码是否相同；bcrypt对密码进行加密的话，同一个密码加密得到的字符串也不相同，但bcrypt.checkpw比较明文和密文结果是true"""
     hashed_password_bytes = base64.b64decode(hashed_password.encode('utf-8'))
     input = input.encode('utf-8')

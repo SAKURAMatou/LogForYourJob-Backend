@@ -9,13 +9,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Body, UploadFile, File
 from sqlalchemy.orm import joinedload
 
+from config import get_settings
 from dao.database import get_session
 from dependencies import get_user_token
 from usersetting.models import User
 from usersetting.schema import UserCreate, UserBase, UserBasicInfoEdit
 from utils.pathUtil import get_avatar_storage_path, makedir_if_missing
 from utils.requestUtil import response
-from utils.JWTUtil import hash_pwd
+from utils.JWTUtil import hash_pwd, check_password
 from logger.projectLogger import logger
 from dao.commonModels import AttachmentFile, FileStorage
 from PIL import Image
@@ -43,7 +44,7 @@ async def edit_user_basic_info(edit_user: UserBasicInfoEdit, user: User = Depend
             avatar_attachment = AttachmentFile.get_by_guid(edit_user.avatarguid, session,
                                                            joinedload(AttachmentFile.file_storages))
             if avatar_attachment is None:
-                return response.fail(535, '用户头像上传失败！')
+                return response.fail(535, '用户头像上传失败,请重新上传头像！')
             user.avatarurl = avatar_attachment.file_storages[0].url
             pass
         session.commit()
@@ -56,10 +57,13 @@ async def edit_user_basic_info(edit_user: UserBasicInfoEdit, user: User = Depend
 
 @logger.catch
 @router.post('/change/password')
-async def edit_user_pwd(newpwd: Annotated[str, Body(embed=True)], user: User = Depends(get_user_token),
+async def edit_user_pwd(newpwd: Annotated[str, Body(embed=True)], nowpwd: Annotated[str, Body(embed=True)],
+                        user: User = Depends(get_user_token),
                         session=Depends(get_session)):
     """用户密码修改"""
     try:
+        if not check_password(nowpwd, user.pwd):
+            return response.fail(538, "旧密码错误！")
         user.pwd = hash_pwd(newpwd)
         session.commit()
         return return_user_info(user, '密码修改成功！')
@@ -71,7 +75,7 @@ async def edit_user_pwd(newpwd: Annotated[str, Body(embed=True)], user: User = D
 
 @logger.catch
 @router.post('/change/phone')
-async def deit_user_phone(newphone: Annotated[str, Body(embed=True)], user: User = Depends(get_user_token),
+async def edit_user_phone(newphone: Annotated[str, Body(embed=True)], user: User = Depends(get_user_token),
                           session=Depends(get_session)):
     """用户手机号修改"""
     try:
@@ -87,10 +91,15 @@ async def deit_user_phone(newphone: Annotated[str, Body(embed=True)], user: User
 @logger.catch
 def return_user_info(user: User, msg: str):
     """用户信息返回函数"""
-    # return {'userinfo': "succeed"}
+    setting = get_settings()
+    host = setting.system_host.strip("/")
+    base_url = user.avatarurl.strip("/")
+
+    avatarurl = f'{host}/{base_url}'
+
     return response.success(msg, {
         'userinfo': {'useremail': user.useremail, 'username': user.username, 'phone': user.phone,
-                     'avatarurl': user.avatarurl}})
+                     'avatarurl': avatarurl}})
 
 
 # 指定非必填 file: Union[UploadFile, None] = None或file: UploadFile = File(default=None)
