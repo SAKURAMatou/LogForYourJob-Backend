@@ -1,3 +1,5 @@
 applog/*
 .env
 .env.database
+test/*
+storage/*
