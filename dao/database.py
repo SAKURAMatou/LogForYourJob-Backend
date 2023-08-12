@@ -149,7 +149,7 @@ class Base(DeclarativeBase):
     def get_by_guid(cls, guid: str, session: Session, options: ExecutableOption = None, *columns) -> Any:
         """
         类方法，不是属性方法，根据主键查询一条表记录;
-        option:查询条件"""
+        option:查询的额外操作：joinedload(AttachmentFile.file_storages)，查询关联的表数据"""
         inspector = inspect(cls)
         sql = select(cls)
         if len(columns) > 0:

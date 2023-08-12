@@ -1,3 +1,4 @@
+import os
 import unittest
 import uuid
 from datetime import datetime, timedelta
@@ -6,6 +7,7 @@ import time
 from test.testModel import AttachmentFile
 
 from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, decrypt_token, hash_pwd, check_password
+from utils.pathUtil import get_avatar_storage_path
 
 
 class TestOne(unittest.TestCase):
@@ -54,7 +56,12 @@ class TestOne(unittest.TestCase):
             print('test')
 
     def test_default(self):
-        attachment_file = AttachmentFile(rowguid='123456789', upload_userguid='123456789', upload_time=datetime.now())
-        print(attachment_file.__dict__)
-        print(
-            len('E:\\CODE\\Python\\projects\\LogForYourJob-Backend\\storage\\avatar\\2023_08_12\\455693a9-097f-482c-bf9b-11e64c1877f4.jpg'))
+        # attachment_file = AttachmentFile(rowguid='123456789', upload_userguid='123456789', upload_time=datetime.now())
+        # print(attachment_file.__dict__)
+        file_path = 'E:\\CODE\\Python\\projects\\LogForYourJob-Backend\\storage\\avatar\\2023_08_12\\455693a9-097f-482c-bf9b-11e64c1877f4.jpg'
+        print(os.path.dirname(file_path))
+        file_seperator = os.sep
+        avatar_path = get_avatar_storage_path()
+        print(file_path.split(file_seperator)[-2])
+
+        # print(f'/avatars/{avatar_path.split(file_seperator)[-1]}/12.jpg')

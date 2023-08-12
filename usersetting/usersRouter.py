@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Body, UploadFile, File
+from sqlalchemy.orm import joinedload
 
 from dao.database import get_session
 from dependencies import get_user_token
@@ -39,6 +40,11 @@ async def edit_user_basic_info(edit_user: UserBasicInfoEdit, user: User = Depend
             user.useremail = edit_user.email
         if edit_user.avatarguid is not None:
             # 根据头像的guid找到对应的头像附件对象，并获取url
+            avatar_attachment = AttachmentFile.get_by_guid(edit_user.avatarguid, session,
+                                                           joinedload(AttachmentFile.file_storages))
+            if avatar_attachment is None:
+                return response.fail(535, '用户头像上传失败！')
+            user.avatarurl = avatar_attachment.file_storages[0].url
             pass
         session.commit()
         return return_user_info(user, '用户基本信息修改成功！')
@@ -103,6 +109,9 @@ async def upload_avatar(file: UploadFile = File(description="upload avatar file"
         storage_name = str(uuid.uuid4())
         file_type = file.filename.split(".")[-1]
         file_path = os.path.join(avatar_path, f'{storage_name}.{file_type}')
+        # 头像文件的静态资源访问路径是/avatars/文件所在的目录的storage/avatar下边部分
+        file_path_list = file_path.split(os.sep)
+        file_url = f'/avatars/{file_path_list[-2]}/{file_path_list[-1]}'
 
         with Image.open(file.file) as image:
             image = image.resize((300, 300))
@@ -116,12 +125,14 @@ async def upload_avatar(file: UploadFile = File(description="upload avatar file"
         storage.file_size = os.path.getsize(file_path) / 1024
         storage.file_name = file.filename
         storage.storage_path = file_path
+        storage.url = file_url
+
         session.add(attachment_file)
         session.add(storage)
         session.commit()
 
         return response.success('头像上传成功！',
-                                {'avatarguid': attachment_file.rowguid, 'url': file_path})
+                                {'avatarguid': attachment_file.rowguid, 'url': file_url})
 
 
     except Exception as e:

@@ -1,8 +1,10 @@
 import sys
 
 import logging
+from loguru import logger
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from login import routers as login
 from login import tokenRouter
@@ -35,7 +37,8 @@ app.include_router(login.router)
 app.include_router(jobSearchRouters.router)
 app.include_router(usersRouter.router)
 
-from loguru import logger
+# 设置头像访问的静态文件服务
+app.mount("/avatars", StaticFiles(directory="storage/avatar"), name="avatars")
 
 
 # 把fastapi、uvicorn的日志拦截并交给Loguru进入打印

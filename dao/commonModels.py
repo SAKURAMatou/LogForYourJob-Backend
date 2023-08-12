@@ -25,5 +25,6 @@ class FileStorage(Base):
     file_name: Mapped[str] = mapped_column(Text)  # 文件name
     file_size: Mapped[float] = mapped_column(Float())  # 文件大小，单位字节
     storage_path: Mapped[str] = mapped_column(String(200))  # 存储路径
+    url: Mapped[str] = mapped_column(String(150), default=None)  # 访问的url地址
     attachment_guid = Column(String(50), ForeignKey("dml_attachment_file.rowguid"))  # 文件关联的附件guid
     attachment = relationship('AttachmentFile', back_populates='file_storages')
