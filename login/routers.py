@@ -47,11 +47,6 @@ async def login(userLogin: UserLogin, session=Depends(get_session)):
                                      'username': user.username})
 
 
-@router.get("/detail")
-async def get_user(user: UserCreate = Depends(get_user_token)):
-    return user
-
-
 @router.get("/activate/{token}")
 async def user_activate(token: str, session=Depends(get_session)):
     """激活用户"""

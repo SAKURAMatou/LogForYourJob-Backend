@@ -10,6 +10,7 @@ from logforjob import jobSearchRouters
 from dao.database import Base, engine
 from config import get_settings
 from utils.JWTUtil import refresh_token
+from usersetting import usersRouter
 from logger.projectLogger import logger
 
 app = FastAPI()
@@ -33,6 +34,7 @@ async def refresh_token_middleware(request: Request, call_next):
 app.include_router(tokenRouter.router)
 app.include_router(login.router)
 app.include_router(jobSearchRouters.router)
+app.include_router(usersRouter.router)
 
 from loguru import logger
 

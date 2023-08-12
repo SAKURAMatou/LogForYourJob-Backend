@@ -1,5 +1,5 @@
 """pydantic的数据模型"""
-from typing import Union
+from typing import Union, Optional
 
 from pydantic import BaseModel, Field
 
@@ -23,3 +23,10 @@ class UserLogin(BaseModel):
 
 class UserSession(UserBase):
     rowguid: str
+
+
+class UserBasicInfoEdit(BaseModel):
+    """用户基本信息修改入参"""
+    name: Optional[str] = None
+    email: Optional[str] = None
+    avatarguid: Optional[str] = None

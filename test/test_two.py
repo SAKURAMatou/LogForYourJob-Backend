@@ -1,3 +1,4 @@
+import os
 import time
 import unittest
 from datetime import timedelta, datetime, tzinfo
@@ -6,6 +7,7 @@ from typing import Optional
 from pydantic import BaseModel, field_validator
 
 from utils.JWTUtil import encrypt_and_expire
+from utils.pathUtil import get_home_dir
 
 
 def sql_page(session: str, currentPage=1, pagesize=10, orderby=None,
@@ -41,3 +43,8 @@ class TestTwo(unittest.TestCase):
         now = int(time.time())
         print(expire_time.timestamp(), now, int(expire_time.timestamp()) - now)
         # print(tzinfo.utcoffset(8))
+
+    def test_path(self):
+        print('path', os.path)
+        print(get_home_dir())
+        pass
