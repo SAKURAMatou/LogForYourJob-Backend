@@ -20,6 +20,10 @@ app = FastAPI()
 @app.middleware("http")
 async def refresh_token_middleware(request: Request, call_next):
     """刷新令牌"""
+    token = request.cookies.get("token")
+    if token is not None:
+        pass
+
     old_token = request.headers.get("Authorization")
 
     response = await call_next(request)
@@ -29,6 +33,8 @@ async def refresh_token_middleware(request: Request, call_next):
         res = refresh_token(old_token, settings.secret_key)
         if res:
             response.headers["token"] = res
+            response.set_cookie(key='token', value=res,
+                                httponly=True, max_age=settings.token_expires_in * 60)
     return response
 
 

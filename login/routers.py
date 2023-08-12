@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from dao.database import get_session
 from dependencies import get_user_token
@@ -25,7 +25,7 @@ async def register(userCreate: UserCreate, session=Depends(get_session)):
 
 
 @router.post("/login")
-async def login(userLogin: UserLogin, session=Depends(get_session)):
+async def login(userLogin: UserLogin, requestResponse: Response, session=Depends(get_session)):
     """用户登录"""
     users = get_user_one_field('useremail', userLogin.name, session)
     if not users:
@@ -44,10 +44,14 @@ async def login(userLogin: UserLogin, session=Depends(get_session)):
     # 密码相同则登录成功，生成token
     token = encrypt_and_expire(user.rowguid, settings.secret_key)
     # 拼接用户头像的访问地址:host/url
-    host = settings.system_host.strip("/")
-    base_url = user.avatarurl.strip("/")
+    avatarurl = ''
+    if user.avatarurl is not None:
+        base_url = user.avatarurl.strip("/")
+        host = settings.system_host.strip("/")
+        avatarurl = f'{host}/{base_url}'
 
-    avatarurl = f'{host}/{base_url}'
+    requestResponse.set_cookie(key='token', value=token,
+                               httponly=True, max_age=settings.token_expires_in * 60)
     return response.success("登录成功", {'token': token, 'avatarurl': avatarurl, 'useremail': user.useremail,
                                      'username': user.username})
 

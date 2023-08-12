@@ -1,4 +1,4 @@
-from fastapi import Header, HTTPException, Depends, status
+from fastapi import Header, HTTPException, Depends, status, Request
 from fastapi.security import OAuth2PasswordBearer
 
 from config import get_settings
@@ -11,8 +11,12 @@ from usersetting.schema import UserSession
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="rest/token")
 
 
-async def get_user_guid_token(token: str = Depends(oauth2_scheme)):
+async def get_user_guid_token(request: Request, token: str = Depends(oauth2_scheme)):
     """从请求头的token中解析用户guid"""
+    # print(request.cookies)
+    cookie_token = request.cookies.get("token")
+    if cookie_token is not None:
+        token = cookie_token
     settings = get_settings()
     # 根据token解密出用户guid
     userguid = decrypt_and_check_expiration(token, settings.secret_key)

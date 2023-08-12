@@ -92,10 +92,11 @@ async def edit_user_phone(newphone: Annotated[str, Body(embed=True)], user: User
 def return_user_info(user: User, msg: str):
     """用户信息返回函数"""
     setting = get_settings()
-    host = setting.system_host.strip("/")
-    base_url = user.avatarurl.strip("/")
-
-    avatarurl = f'{host}/{base_url}'
+    avatarurl = None
+    if user.avatarurl is not None:
+        host = setting.system_host.strip("/")
+        base_url = user.avatarurl.strip("/")
+        avatarurl = f'{host}/{base_url}'
 
     return response.success(msg, {
         'userinfo': {'useremail': user.useremail, 'username': user.username, 'phone': user.phone,
