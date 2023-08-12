@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Response
 
 from dao.database import get_session
 from dependencies import get_user_token
+from usersetting.models import User
 from usersetting.schema import UserCreate, UserLogin
 from .loginCurd import user_register, user_active, get_user_one_field
 from utils.requestUtil import response
@@ -72,3 +73,9 @@ def send_activity_email(user):
     activity_url = f'{setting.system_host}/user/activate/{token}'
     print(activity_url)
     # TODO 邮件发送操作
+
+
+@router.post("/logout", dependencies=Depends(get_user_token))
+async def log_out(requestResponse: Response):
+    requestResponse.set_cookie(key="token", value="", max_age=0)
+    return response.success("登出成功！")
