@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 
 def get_home_dir():
@@ -15,4 +16,17 @@ def makedir_if_missing(path: str, from_home: bool = False) -> str:
         path = os.path.join(get_home_dir(), path)
     if not os.path.exists(path):
         os.makedirs(path)
+    # sleep(5)
     return path
+
+
+def get_file_storage_path():
+    """获取附件存储路径"""
+    timestr = datetime.now().strftime('%Y_%m_%d')
+    return os.path.join(get_home_dir(), 'storage', 'files', timestr)
+
+
+def get_avatar_storage_path():
+    """获取头像存储的路径"""
+    timestr = datetime.now().strftime('%Y_%m_%d')
+    return os.path.join(get_home_dir(), 'storage', 'avatar', timestr)

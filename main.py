@@ -1,8 +1,8 @@
 import sys
 
-import uvicorn
 import logging
 from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 
 from login import routers as login
 from login import tokenRouter
@@ -57,23 +57,25 @@ class InterceptHandler(logging.Handler):
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
 
 
-logging.basicConfig(handlers=[InterceptHandler()], level=0)
-
-# Redirect Uvicorn logs
-for name in ("uvicorn", "uvicorn.error", 'uvicorn.access', "fastapi"):
-    logging_logger = logging.getLogger(name)
-    logging_logger.handlers = [InterceptHandler()]
-
-
 @app.get('/refresh')
 async def refresh():
     """发现uvicorn的热部署需要请求一次接口才能完全热部署完成，"""
     pass
 
 
+@app.get("/")
+async def root():
+    return RedirectResponse(url='/docs')
+
+
 def setup_logging():
     """logurn的配置函数"""
-    pass
+    logging.basicConfig(handlers=[InterceptHandler()], level=0)
+
+    # Redirect Uvicorn logs
+    for name in ("uvicorn", "uvicorn.error", 'uvicorn.access', "fastapi"):
+        logging_logger = logging.getLogger(name)
+        logging_logger.handlers = [InterceptHandler()]
 
 
 setup_logging()
@@ -82,5 +84,7 @@ setup_logging()
 Base.metadata.create_all(bind=engine)
 
 if __name__ == "__main__":
+    import uvicorn
+
     uvicorn.run(app="main:app", host="127.0.0.1", port=8000, reload=True,
                 reload_dirs=["utils", "usersetting", "login", "logforjob", 'dao'])

@@ -1,13 +1,14 @@
 import os
 import time
 import unittest
+import uuid
 from datetime import timedelta, datetime, tzinfo
 from typing import Optional
 
 from pydantic import BaseModel, field_validator
 
 from utils.JWTUtil import encrypt_and_expire
-from utils.pathUtil import get_home_dir
+from utils.pathUtil import get_home_dir, get_avatar_storage_path, makedir_if_missing
 
 
 def sql_page(session: str, currentPage=1, pagesize=10, orderby=None,
@@ -45,6 +46,9 @@ class TestTwo(unittest.TestCase):
         # print(tzinfo.utcoffset(8))
 
     def test_path(self):
-        print('path', os.path)
-        print(get_home_dir())
-        pass
+        avatar_path = get_avatar_storage_path()
+        # makedir_if_missing(avatar_path)
+        st = "sdad.jpg".split('.')
+        file_path = os.path.join(avatar_path, f'{uuid.uuid4()}.{"sdad.jpg".split(".")[-1]}')
+
+        print(file_path)
