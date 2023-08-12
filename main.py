@@ -11,7 +11,6 @@ from dao.database import Base, engine
 from config import get_settings
 from utils.JWTUtil import refresh_token
 from usersetting import usersRouter
-from logger.projectLogger import logger
 
 app = FastAPI()
 
@@ -78,12 +77,13 @@ def setup_logging():
         logging_logger.handlers = [InterceptHandler()]
 
 
+# 把uvicorn的日志转移到logurn进行统一的日志打印
 setup_logging()
-
 # //根据模型创建对饮的数据表
 Base.metadata.create_all(bind=engine)
 
 if __name__ == "__main__":
+    # 本地调试代码
     import uvicorn
 
     uvicorn.run(app="main:app", host="127.0.0.1", port=8000, reload=True,

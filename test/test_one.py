@@ -3,8 +3,7 @@ import uuid
 from datetime import datetime, timedelta
 import time
 
-from logforjob.models import JobSearch, ResumeSend
-from logforjob.schema import ResumeSendSession
+from test.testModel import AttachmentFile
 
 from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, decrypt_token, hash_pwd, check_password
 
@@ -54,12 +53,8 @@ class TestOne(unittest.TestCase):
         if "test":
             print('test')
 
-    def test_to_dict(self):
-        resum = ResumeSendSession(mguid='123456789', salary=15.2)
-        # print(resum.model_dump())
-        # model = ResumeSend(rowguid='12345566', userguid='12345566', cname='fdsfsdf', jobname='jobname')
-
-        # print(ResumeSend().to_dict(), model.to_dict_all(), model.to_dict().keys())
-        print(resum.model_dump(include={i for i in ResumeSend().to_dict_all().keys()}))
-        dump = resum.model_dump(include=ResumeSend().to_dict_all().keys())
-        print({k: v for k, v in dump.items() if v is not None})
+    def test_default(self):
+        attachment_file = AttachmentFile(rowguid='123456789', upload_userguid='123456789', upload_time=datetime.now())
+        print(attachment_file.__dict__)
+        print(
+            len('E:\\CODE\\Python\\projects\\LogForYourJob-Backend\\storage\\avatar\\2023_08_12\\455693a9-097f-482c-bf9b-11e64c1877f4.jpg'))
