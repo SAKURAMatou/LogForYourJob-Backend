@@ -42,7 +42,7 @@ async def refresh_token_middleware(request: Request, call_next):
             settings = get_settings()
             res = refresh_token(old_token, settings.secret_key)
             if res:
-                response.headers["token"] = res
+                # response.headers["token"] = res
                 response.set_cookie(key='token', value=f'Bearer {res}',
                                     httponly=True, max_age=settings.token_expires_in * 60)
 
