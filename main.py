@@ -1,6 +1,8 @@
 import sys
 
 import logging
+
+from fastapi.security.utils import get_authorization_scheme_param
 from loguru import logger
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
@@ -20,21 +22,30 @@ app = FastAPI()
 @app.middleware("http")
 async def refresh_token_middleware(request: Request, call_next):
     """刷新令牌"""
+    old_token = request.headers.get("Authorization")
     token = request.cookies.get("token")
     if token is not None:
-        pass
-
-    old_token = request.headers.get("Authorization")
+        # Authorization的token从请求头和cookie两个地方获取
+        old_token = token
 
     response = await call_next(request)
-    if old_token:
-        old_token = old_token.replace("Bearer ", '')
-        settings = get_settings()
-        res = refresh_token(old_token, settings.secret_key)
-        if res:
-            response.headers["token"] = res
-            response.set_cookie(key='token', value=res,
-                                httponly=True, max_age=settings.token_expires_in * 60)
+    if '/user/logout' == request.url.path:
+        # 退出登录时需要清空cookie
+        response.set_cookie(key='token', value='', httponly=True, max_age=0)
+        return response
+    else:
+        # 解析出token的值,当入参为空时返回("","")
+        scheme, param = get_authorization_scheme_param(old_token)
+        if scheme.lower() == 'bearer':
+            # old_token = old_token.replace("Bearer ", '')
+            old_token = param
+            settings = get_settings()
+            res = refresh_token(old_token, settings.secret_key)
+            if res:
+                response.headers["token"] = res
+                response.set_cookie(key='token', value=f'Bearer {res}',
+                                    httponly=True, max_age=settings.token_expires_in * 60)
+
     return response
 
 

@@ -51,7 +51,7 @@ async def login(userLogin: UserLogin, requestResponse: Response, session=Depends
         host = settings.system_host.strip("/")
         avatarurl = f'{host}/{base_url}'
 
-    requestResponse.set_cookie(key='token', value=token,
+    requestResponse.set_cookie(key='token', value=f'Bearer {token}',
                                httponly=True, max_age=settings.token_expires_in * 60)
     return response.success("登录成功", {'token': token, 'avatarurl': avatarurl, 'useremail': user.useremail,
                                      'username': user.username})
@@ -75,7 +75,7 @@ def send_activity_email(user):
     # TODO 邮件发送操作
 
 
-@router.post("/logout", dependencies=Depends(get_user_token))
+@router.post("/logout", dependencies=[Depends(get_user_token)])
 async def log_out(requestResponse: Response):
     requestResponse.set_cookie(key="token", value="", max_age=0)
     return response.success("登出成功！")
