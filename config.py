@@ -19,15 +19,20 @@ class Settings(BaseSettings):
     secret_key: str  # 用户token的加密key
     activity_key: str  # 用户激活时的加密key
     system_host: str
+    smtp_port: int
     token_expires_in: int = 60
+    fornt_host: str
+    smtp_server: str
+    smtp_username: str
+    smtp_password: str
 
 
 @lru_cache()
-def get_database():
+def get_database() -> DatabaseSettings:
     # load_dotenv('.env.database')
     return DatabaseSettings(_env_file='.env.database')
 
 
 @lru_cache()
-def get_settings():
+def get_settings() -> Settings:
     return Settings(_env_file='.env')
