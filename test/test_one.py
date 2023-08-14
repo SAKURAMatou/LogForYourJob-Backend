@@ -4,8 +4,7 @@ import uuid
 from datetime import datetime, timedelta
 import time
 
-from test.testModel import AttachmentFile
-
+from loguru import logger
 from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, decrypt_token, hash_pwd, check_password
 from utils.pathUtil import get_avatar_storage_path
 
@@ -65,3 +64,9 @@ class TestOne(unittest.TestCase):
         print(file_path.split(file_seperator)[-2])
 
         # print(f'/avatars/{avatar_path.split(file_seperator)[-1]}/12.jpg')
+
+    def test_except(self):
+        try:
+            1 / 0
+        except Exception as e:
+            logger.exception(e)

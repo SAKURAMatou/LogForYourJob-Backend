@@ -1,33 +1,50 @@
 from fastapi import APIRouter, Depends, Response, HTTPException
-import smtplib
-from email.message import EmailMessage
 
+from sqlalchemy.orm import Session
+from fastapi.responses import RedirectResponse
 from dao.database import get_session
 from dependencies import get_user_token
 from usersetting.schema import UserCreate, UserLogin
+from utils.emailUtil import send_email
 from .loginCurd import user_register, user_active, get_user_one_field
 from utils.requestUtil import response
 from config import get_settings, Settings
 from utils.JWTUtil import encrypt_and_expire, decrypt_and_check_expiration, hash_pwd, check_password
+from logger.projectLogger import logger
 
 router = APIRouter(prefix="/user")
 
 
 @router.post("/register")
-async def register(userCreate: UserCreate, session=Depends(get_session)):
+async def register(userCreate: UserCreate, session: Session = Depends(get_session)):
     """用户注册"""
-    userCreate.pwd = hash_pwd(userCreate.pwd)
+    try:
+        userCreate.pwd = hash_pwd(userCreate.pwd)
+        res = user_register(userCreate, session)
+        if not res['result']:
+            return response.fail(521, "用户已存在", {'useremail': userCreate.useremail, 'username': userCreate.username})
 
-    res = user_register(userCreate, session)
-    if not res['result']:
-        return response.fail(521, "用户已存在", {'useremail': userCreate.useremail, 'username': userCreate.username})
+        setting = get_settings()
+        user = res['user']
+        token = encrypt_and_expire(user.rowguid, setting.activity_key, 10)
+        activity_url = f'{setting.system_host}/user/activate/{token}'
 
-    send_activity_email(res['user'])
-    return response.success("注册成功", {'useremail': userCreate.useremail, 'username': userCreate.username})
+        send_email(get_sctivity_email_content(activity_url), "LogForYouJob 账号激活",
+                   f'LogForYouJob<{setting.smtp_username}>',
+                   user.useremail, subtype='html')
+
+        session.commit()
+        session.flush()
+        return response.success(f'用户{userCreate.username}注册成功，请前往邮箱{userCreate.useremail}查看激活邮件进行用户激活！',
+                                {'useremail': userCreate.useremail, 'username': userCreate.username})
+    except Exception as e:
+        logger.exception(e)
+        session.rollback()
+        return response.fail(522, "注册出现异常！")
 
 
 @router.post("/login")
-async def login(userLogin: UserLogin, requestResponse: Response, session=Depends(get_session)):
+async def login(userLogin: UserLogin, requestResponse: Response, session: Session = Depends(get_session)):
     """用户登录"""
     users = get_user_one_field('useremail', userLogin.name, session)
     if not users:
@@ -59,55 +76,26 @@ async def login(userLogin: UserLogin, requestResponse: Response, session=Depends
 
 
 @router.get("/activate/{token}")
-async def user_activate(token: str, session=Depends(get_session)):
+async def user_activate(token: str, session: Session = Depends(get_session)):
     """激活用户"""
-    settings = get_settings()
-    userguid = decrypt_and_check_expiration(token, settings.activity_key)
-    res = user_active(userguid, session)
-    return res
-
-
-def send_activity_email(user):
-    """发送账号激活邮件"""
-    setting = get_settings()
-    token = encrypt_and_expire(user.rowguid, setting.activity_key, 10)
-    activity_url = f'{setting.system_host}/user/activate/{token}'
-    msg = EmailMessage()
-    msg.set_content(get_sctivity_email_content(activity_url), subtype='html', charset='utf-8')
-    msg["Subject"] = "LogForYouJob 账号激活"
-    msg["From"] = 'LogForYouJob <dmlpl456@qq.com>'
-    msg["To"] = user.useremail
-
     try:
-        with smtplib.SMTP_SSL(setting.smtp_server, setting.smtp_port) as server:
-            server.login(setting.smtp_username, setting.smtp_password)
-            server.send_message(msg)
-
-        return {"message": "Activation email sent successfully!"}
-
+        settings = get_settings()
+        userguid = decrypt_and_check_expiration(token, settings.activity_key)
+        res = user_active(userguid, session)
+        session.commit()
+        return RedirectResponse(settings.fornt_host)
     except Exception as e:
-        raise HTTPException(status_code=539, detail=f"Error sending email: {e}")
+        logger.exception(e)
+        session.rollback()
+        return response.fail(523, "用户激活出现异常！")
 
 
 def get_sctivity_email_content(activity_url: str):
-    return f"""<div class="active-container" style=" display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh">
+    return f"""<div class="active-container" style=" display: flex; justify-content: center;  align-items: center;">
     <div class="active-show" style="width: 360px;height: 360px;vertical-align: middle;">
-        <svg width="274" height="74" viewBox="0 0 274 74" fill="none" xmlns="http://www.w3.org/2000/svg"
-             xmlns:xlink="http://www.w3.org/1999/xlink">
-            <g style="mix-blend-mode:multiply">
-                <rect width="274" height="74" fill="url(#pattern0)"/>
-            </g>
-            <defs>
-                <pattern id="pattern0" patternContentUnits="objectBoundingBox" width="1" height="1">
-                    <use xlink:href="#image0_5_1368" transform="scale(0.00364964 0.0135135)"/>
-                </pattern>
-                <image id="image0_5_1368" width="274" height="74"
-                       xlink:href="data:image/png;base64,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"/>
-            </defs>
-        </svg>
+        <div>
+            <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjc0IiBoZWlnaHQ9Ijc0IiB2aWV3Qm94PSIwIDAgMjc0IDc0IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIj4KPGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOm11bHRpcGx5Ij4KPHJlY3Qgd2lkdGg9IjI3NCIgaGVpZ2h0PSI3NCIgZmlsbD0idXJsKCNwYXR0ZXJuMCkiLz4KPC9nPgo8ZGVmcz4KPHBhdHRlcm4gaWQ9InBhdHRlcm4wIiBwYXR0ZXJuQ29udGVudFVuaXRzPSJvYmplY3RCb3VuZGluZ0JveCIgd2lkdGg9IjEiIGhlaWdodD0iMSI+Cjx1c2UgeGxpbms6aHJlZj0iI2ltYWdlMF81XzEzNjgiIHRyYW5zZm9ybT0ic2NhbGUoMC4wMDM2NDk2NCAwLjAxMzUxMzUpIi8+CjwvcGF0dGVybj4KPGltYWdlIGlkPSJpbWFnZTBfNV8xMzY4IiB3aWR0aD0iMjc0IiBoZWlnaHQ9Ijc0IiB4bGluazpocmVmPSJkYXRhOmltYWdlL3BuZztiYXNlNjQsaVZCT1J3MEtHZ29BQUFBTlNVaEVVZ0FBQVJJQUFBQktDQUlBQUFENC8weGFBQUFBQ1hCSVdYTUFBQTdFQUFBT3hBR1ZLdzRiQUFBQUVYUkZXSFJUYjJaMGQyRnlaUUJUYm1sd1lYTjBaVjBYenQwQUFBa1JTVVJCVkhpYzdkMS9hQk5wR2dmdzc4d2treWEyUzZHd1J3S0Y5Qjk3QlN1bHJRb3RDK3N0V0sycDNiMjFMbXV0ZDJ2dHVvV1RWamlSZzdZczltNFhPVUZGYUhHOXJyZGJLOWhhcnRXNi9nRFA1VTRyUml1RkNyc3RCeTBJQ1NkWEVLSkpNOGxNN28rMHBrbWJtbmN5azhUczg2Ri8yR1FtNytOMG5ubC96b1FMaFVJZ2hMRGcweDBBSVc4ZlNodENtRkhhRU1LTTBvWVFacFEyaERDanRDR0VHYVVOSWN3b2JRaGhSbWxEQ0ROS0cwS1lVZG9Rd3N5UTdnRGVJSER0aUwvN1BsQXRqSjB5djV2dWFKWXNSUlZQbzlIWlprcGRPQUNBeVRNdlB4K0kvRnJWWVRxOXl4anpZbG9DaTBQVHYreVVkM096QXFDcEwvZHdxUmJSdlFIVk5vUXd5L1RhSnJObFVoMVkxcGI3WUx2M3QwMktHOWh3VkR5OXl3aWdyTTN5M1R2ZTMvVUN3TEdSM0k5dGFRNHlXMUJ0azBXRVlzUCtVZ0I0T2hEOEtmeVNKRjN2QXdCemcyRUg1WXhtS0cyeWlyampBRzhHNEZMR3B4VUFudnZ5b0FRQSszZUpsdlNHbGxXeXRwRVdlRGdVR0w2cVBKeUdEOGkzYzFWYitVLzJtVXJ5NGw0bjVQbUZTNmZseTNkRHp5WGsyN202WmtPTlA3anZ6eUdBNjd5eHJxNGd4Vkg1ejI0TzlDLzd2YWt2OTNDcDh2enhRcyszeXZoanZBRE1CZGpiYlQ1VUtTemZ6Vkl0N0xjcDUxejQvcXJVZEZRWXZ4a0NnRkpoVy9FYUYwaVdZeFduOC8zODZpdEgybzVWaFB3LzZkOFhBdWNHUXpQek1CZGd5M2JoNEFIVCtqVjNVU1ViMDBaMitUcWE1RHVleUNzdjVrSS9YSkIvR1BEdVBXRTZYRzBVVnV6aW5mSiszcXJNU0pIdCt6dWp6dHEwUkJVdE9IbG1ZZm13bU0vRWI5bTRjaWZUdHNiQXViL0NOeVRmM1I2NmZCY0E5clNLaFhwRnBRdlZVVjA2SmwxYStyZHZIajhPeUQ5ZTlYM1piNjYxYVpzNTJkZElreFpPN3BIdmVJQTg3bENQNlo0ejErbTAzTDRzN0MwR0pGdzY0dStmVm1KMzhmaStDdWVNbmV2c056MXc1anFkT2NOOS9BZDVhWXpLZE5pWjYzVG1PdnNXLzBMZW0xTGJFTmQ4U3J4eHorSjA1ajY0Wnhyc01aYUpxeFJWV0cvWUl3SUk5WFRLVHdIWStKMlZjVTR6RmNjcUJaS0l5bHpLbngzSmVlRE1kVHBOZzkyOEhZQW45R1duZjA3akVMTXRiWlNmQm9MREVnRDg4Vy9tNWtxakNBQjhmcEc1dmMrdzF3WUFQZC82WDBUdk0zTkZ2aDNlNVlTNXJqaDhKVE1VbGxxT3RIRnZLTzIrN05qOGNuUFVqM2RTbzZoaURBK0ZqZ3lhRDFXTEJTSVBRQkNOZHB0eDlVMUZjV2N6QUxoZEFGQjF3Rml5K25ZYVJLV0RwS0xhM1c3WllqTUlBR0MwMStTYzZlRE1BS2JrSzQ5bFRZUE10clFKUEJ3RkFHd1Z0aFZGLzkvRW5BOGJBUUIzbGZINTVXOUlrLzhFQU5RSU80cDBPaHdxb29wbGJqVFVKZHJTNEV0cWhBMkxuODkvdWoxT2Rta1JsUTQwaklxMzdqTHNGZ0hnMnFPZ3BrRm1YZC9HNHdLQWtrb2hmOFZiOWwvemdBS0Vucm1BU0xjMTlOOXBBQ2paS0RBM3loS2V0MkdQS2xadHBZR2htMkV6ZkZRdFA3MFBiT0tLVm12SWFSV1ZIalNOaXJkdkF1N0RONk04QjdTYllkUGw4cXE0M2I3V1ZsOXJxK0oyNi9INWF3aUZLMk9MNlUzdHF4VmV2TlR2eVZmcW8zck44bzdtblhNTm9rcVlrbkFqS1pWUnFhWkwyc2dURTY5LzlQajhOWEQ1TmdDWWVCVDBySGh2N3Vkd1Y1SXJqSnI0NDM1VkRBRHVueFhkMnZFcW9rb0JEYU9TL3pNZDU2TGo4Vi9yZlhYZ0ErK0lLK1lOWlg0V0FNenIrZWhLUU50anBjdzlXcldVSkdWYjM4YTRwUjRBY0V1K01SczkzaUl0aklSSGI3ZnlWVkgxdTFqMkd3REFYZm4yckU0RFJ5cWlTZ0dWVVprQkFMSS9zb3Zza2dhSDRwV2lqRjhJUGZYZys2RUY3N0pYNVZubFh5NEFxTjBZMDAvUThsZzl2eFc4SWdGQTNTWnRleVBabGpaOFNhUGhZeEVBVGg3MDlVOEZKQUJRdks2RmM2M0JTeTRBYU40bnhqU2ExKzhXdGkzdE1qd2QzaVg0N0xHMys0eFd6VFkxVWVsUFZWVEZmQzBBNEI4RC9qbEpBUlR2ck8rcmR0bThOVTZiS2svOHBCRUEzQVBCOXQ0RnQ2UUFpdVJhT0hWc2NYQzhabE5NNHpPcFkzWGx0UGVoS3lnRFFHRHVsdmNQblNFZmdGSmhkN3doZUpVNFBSNW1HeGdiOHg4L0RzRFUxV1YwT0pMNktCVkw5RmRPbGkwU2tlQjBaN1NWTTk5cUZyMHpSaFc3U21BSi80M1RVaGEvbEtYWitsanhWdFN6SHl0bDVvSjNYMi9VUy9aRzQ5ZEZ3VS9qclJLUS9IOXZEZlJNclZKRWMyL09vZEpWNmdIbXFKYldMcXdpajh1YzZVNTVZaUl3TnBaNGoxOXh1NW0yVDRwZ00zOTl4L1JOQi85KzhXS0xJdC9PMVg0bVhMeGhhWTh6d1d3cHRYdzNhanpXd0wwckxtN2YxRzI4MktGbHIxUkZWQ25BSGhXLy9yT2NpeDE4V1FFQW1BdTQycVBHdmpiVFdvT1FvdW4zZlRtRHAvamFTb1FQTC9Ld3BZWS9PMnBaTldkVVJiV29xY2QwdG8xYmlnM3Z0eG9HUnpUUEdhaXJiUlMzMjF0ZmovaVZ5Y3JhNWxWOWZjanROamdjT1YxZFNjZWNLanFzc3lMWklhazhEQ1ZjZTRTM1RIejdGRlBjMC80VkxZTGc0dWlReUJWU3pwQW8yVFlrb01xOC8yUnp3TkhrSFo2U1BKSUNRSllDa3hmOGZ4b0NnQTF0aGxUY1prdmVKbG0zU2tDRlo0K1ZLUW0rYWVWRXMzUUNVY01DOWwzQ1h4ckVkSFU4U0thaXRBRUthOWJkcUpMR2J3YXZYVlVtcC9FQ2dJajExZnhIRGNZUEs5UFdXU2NaVEp1MENZOEJpQzB0WWt1TEh0dnJUc2dUMzJzUTMydElkeHprN2FCTjN5WjQvVHFBd05oWWd0dEw1ODhEa0o4ODBhUjBRbEtNaGdRSVlVWnBRd2d6U2h0Q21DV2FOb0d4c2RUZkJVQklaa3BvSkUwNmZ6N2NpYmVNanZKV3E4NGhFWkxwRXFwdFVuK1RKaUdaalBvMmhEQ0xOTklVdHp1NHRMYWZ0MXBUUEJHNXZIUkM5SmJrR1I1Skc5OFhYeXhmb1N5VWx3c1ZGVW1GeHNKLy9EZ05PWkJVU3VZTWp6VFNlQnM5a1o3OGduQkpuUENSMnNiVTFmWDZlaTlVVktSNHhHeDU2WVRvTGNrelBKSTJ2TlhLSjNmZmZ6TFNXem9oVEdna2pSQm1DYVZOdURyanJGYWE2eVFFQ2E0U0VGdGFoUEx5WkxwUWhHU1RSRzlUUytWZ05DRVpqdm8yaERDanRDR0VHYVVOSWN5MGVRU0hlUERnZ3N1VitCTTN4WllXK2NrVDQ4NmRtcFJPU0lwcGt6WkNSY1c2MGRIRXR6YzZIRWsrVXAyUU5LSkdHaUhNS0cwSVlVWnBRd2d6TlduRFc2M2MwbktiQkhjSno1WUs1ZVVxaWlNazA2Z2NFbGczT2lwUFRDUytkTURjMjZ1NDNiU2tqV1FIOVkwMDF1VTJsRE1rYTFEZmhoQm1sRGFFTU5NM2JhaGhScktTTGw4TFpYUTR3bC9DUWJjYmtLeWs1cHVpQ2ZtRm83NE5JY3dvYlFoaFJtbERDRE5LRzBLWVVkb1F3b3pTaGhCbS93YzFRWFBTSGFLWmV3QUFBQUJKUlU1RXJrSmdnZz09Ii8+CjwvZGVmcz4KPC9zdmc+">
+        </div>
         <h1>
             欢迎注册
         </h1>

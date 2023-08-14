@@ -18,8 +18,7 @@ def user_register(user: UserCreate, session: Session):
     user = User(**user.model_dump(), rowguid=str(uuid4()), created_time=datetime.now())
 
     session.add(user)
-    session.commit()
-    session.flush()
+
     res['user'] = user
     res['result'] = True
     return res
@@ -39,7 +38,6 @@ def user_active(guid: str, session: Session):
         return '用户不存在！'
     updatesql = update(User).where(User.rowguid == guid).values(isenable=True)
     session.execute(updatesql)
-    session.commit()
     return "用户激活成功！"
 
 
