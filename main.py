@@ -1,6 +1,7 @@
 import sys
 
 import logging
+from datetime import datetime
 
 from fastapi.security.utils import get_authorization_scheme_param
 from loguru import logger
@@ -22,6 +23,7 @@ app = FastAPI()
 @app.middleware("http")
 async def refresh_token_middleware(request: Request, call_next):
     """刷新令牌"""
+    starttime = datetime.now()
     old_token = request.headers.get("Authorization")
     token = request.cookies.get("token")
     if token is not None:
@@ -45,7 +47,8 @@ async def refresh_token_middleware(request: Request, call_next):
                 # response.headers["token"] = res
                 response.set_cookie(key='token', value=f'Bearer {res}',
                                     httponly=True, max_age=settings.token_expires_in * 60)
-
+    timelong = datetime.now() - starttime
+    logger.info(f"请求{request.url.path}耗时:{timelong}ms;{timelong / 1000}s")
     return response
 
 
