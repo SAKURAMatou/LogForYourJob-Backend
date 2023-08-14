@@ -3,3 +3,4 @@ applog/*
 .env.database
 test/*
 storage/*
+*.tar
