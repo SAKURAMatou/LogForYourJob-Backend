@@ -48,7 +48,8 @@ class JobSearchResponse(BaseModel):
 class ResumeSendBasic(JobBase):
     cname: Optional[str] = None
     mguid: Optional[str] = None
-    salary: Optional[float] = None
+    salaryup: Optional[float] = None
+    salarydown: Optional[float] = None
     heartlevel: Optional[str] = None
     cwebsite: Optional[str] = None
     jobdescription: Optional[str] = None
@@ -94,7 +95,9 @@ class ResumeSendResponse(BaseModel):
     guid: Optional[str] = None
     cname: Optional[str] = None
     jobname: Optional[str] = None
-    salary: Union[str, float] = None
+    salaryup: Union[str, float] = None
+    salarydown: Union[str, float] = None
+    salary: Union[str, None] = None
     sendtime: Union[str, datetime] = None
     requirement: Optional[str] = None
     heartlevel: Optional[str] = None
