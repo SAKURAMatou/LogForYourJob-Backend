@@ -105,3 +105,4 @@ class ResumeSendResponse(BaseModel):
     comment: Optional[str] = None
     mguid: Optional[str] = None
     mname: Optional[str] = None
+    cwebsite: Optional[str] = None
