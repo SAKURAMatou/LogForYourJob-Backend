@@ -70,3 +70,9 @@ class TestOne(unittest.TestCase):
             1 / 0
         except Exception as e:
             logger.exception(e)
+
+    def test_split(self):
+        str='123456789'
+        print(type(str[0::1]))
+        print("_".join(str))
+        # print(str.split(''))

@@ -1,5 +1,3 @@
-import sys
-
 import logging
 from datetime import datetime
 
@@ -16,6 +14,7 @@ from dao.database import Base, engine
 from config import get_settings
 from utils.JWTUtil import refresh_token
 from usersetting import usersRouter
+from interview import interviewRouters
 
 app = FastAPI()
 
@@ -56,7 +55,7 @@ app.include_router(tokenRouter.router)
 app.include_router(login.router)
 app.include_router(jobSearchRouters.router)
 app.include_router(usersRouter.router)
-
+app.include_router(interviewRouters.router)
 # 设置头像访问的静态文件服务
 app.mount("/avatars", StaticFiles(directory="storage/avatar"), name="avatars")
 

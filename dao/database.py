@@ -114,7 +114,7 @@ class Base(DeclarativeBase):
 
     def sql_page(self, session: Session, currentPage=1, pagesize=10, orderby=None,
                  order='desc', options: ExecutableOption = None, *columns) -> list[RowMapping]:
-        """分页查询数据；返回结果是list[RowMapping]，通用查询方法，没有指定model，返回结果默认是Row，
+        """分页查询数据；返回结果是list[RowMapping]，通用查询方法，没有指定model，需要RowMapping.get("表实体对象类")
         row类型类似tuple没有__dict__的默认函数，直接作为返回值会有异常
         ；默认值：currentPage=1, pagesize=10, order='desc'"""
         if len(columns) > 0:
