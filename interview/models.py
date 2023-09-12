@@ -2,7 +2,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import String, Boolean, Float, Text, ForeignKey, Column, text, UUID, Integer
+from sqlalchemy import String, Boolean, Float, Text, ForeignKey, Column, text, UUID, Integer, ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from dao.database import Base
@@ -13,8 +13,8 @@ class InterviewQuestion(Base):
     rowguid: Mapped[UUID] = mapped_column(UUID, primary_key=True)
     userguid: Mapped[str] = mapped_column(String(50))
     create_time: Mapped[datetime] = mapped_column(default=datetime.now)
-    tag_name: Mapped[str] = mapped_column(String(50))
-    tag_value: Mapped[str] = mapped_column(String(50))
+    tag_name = Column(ARRAY(String))
+    tag_value = Column(ARRAY(String))
     question: Mapped[str] = mapped_column(String(200))
     view_times: Mapped[int] = mapped_column(Integer, default=0)
     proficiency: Mapped[int] = mapped_column(Integer, default=0)
