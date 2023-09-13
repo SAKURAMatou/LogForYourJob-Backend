@@ -18,6 +18,13 @@ from utils.requestUtil import response
 
 router = APIRouter(prefix='/interview')
 
+tag_map = {
+    "01": 'info',
+    "02": 'warning',
+    "03": 'error',
+    "04": 'success', "05": '', "06": 'warning'
+}
+
 
 @router.post("/question/add")
 async def add_interview_question(questionAddParam: QuestionAddParam, user: UserSession = Depends(get_user_session),
@@ -63,9 +70,14 @@ async def get_interview_question(questionListParam: QuestionListParam, session: 
     # res['count'] = interviewQuestion.sql_select(session, None, func.count("*").label("count"))
     pager = get_question_page(questionListParam, session)
     for item in pager['list']:
-        res['list'].append(QuestionResponse(kguid=str(item.rowguid), question=item.question,
-                                            answer=item.answer.answer_content,
-                                            tagname=";".join(item.tag_name)))
+        resItem = QuestionResponse(kguid=str(item.rowguid), question=item.question,
+                                   answer=item.answer.answer_content)
+        for tagname, tagvalue in zip(item.tag_name, item.tag_value):
+            resItem.tagname.append({
+                "tagname": tagname,
+                "tagtype": tag_map.get(tagvalue)
+            })
+        res['list'].append(resItem)
         res['count'] = pager['count']
         # res['list'] = pager['list']
     return response.success("列表查询成功", res)
@@ -102,8 +114,8 @@ async def modify_question(questionModifyParam: QuestionModifyParam, session: Ses
     if questionModifyParam.answer is not None:
         question.answer.answer_content = questionModifyParam.answer
     if questionModifyParam.tagName is not None:
-        question.tag_name = questionModifyParam.tagName
+        question.tag_name = questionModifyParam.tagName.split(";")
     if questionModifyParam.tagValue is not None:
-        question.tag_value = questionModifyParam.tagValue
+        question.tag_value = questionModifyParam.tagValue.split(";")
     session.commit()
     return response.success("修改成功!")

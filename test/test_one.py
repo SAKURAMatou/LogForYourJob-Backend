@@ -72,7 +72,13 @@ class TestOne(unittest.TestCase):
             logger.exception(e)
 
     def test_split(self):
-        str='123456789'
+        str = '123456789'
         print(type(str[0::1]))
         print("_".join(str))
         # print(str.split(''))
+
+    def test_for(self):
+        list1 = [1, 2, 3, 4, 5]
+        list2 = [10, 20, 30, 40, 50]
+        for i, j in zip(list1, list2):
+            print(i, j)

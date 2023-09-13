@@ -1,8 +1,8 @@
 """面经相关的pydantic模型"""
 from datetime import datetime
 
-from pydantic import BaseModel
-from typing import Optional, Union
+from pydantic import BaseModel, field_validator
+from typing import Optional, Union, List
 
 
 class QuestionBase(BaseModel):
@@ -56,12 +56,20 @@ class QuestionModifyParam(InterviewBase):
     tagName: Optional[str] = None
     tagValue: Optional[str] = None
 
+    @field_validator("tagName", 'tagValue', mode='before')
+    def empty_str_to_none(cls, v):
+        return None if v == "" else v
+
 
 class QuestionListParam(QuestionBase):
     cpage: Optional[int] = 1
     pagesize: Optional[int] = 10
     tagvalue: Optional[str] = None
     keyword: Optional[str] = None
+
+    @field_validator("tagvalue", 'keyword', mode='before')
+    def empty_str_to_none(cls, v):
+        return None if v == "" else v
 
 
 class Questionguid(BaseModel):
@@ -72,11 +80,11 @@ class QuestionResponse(BaseModel):
     kguid: Optional[str] = None
     question: Optional[str] = None
     answer: Optional[str] = None
-    tagname: Optional[str] = None
+    tagname: Optional[List[str]] = []
 
 
 class QuestionDetailResponse(BaseModel):
     rowguid: Optional[str] = None
     question: Optional[str] = None
     answer: Optional[str] = None
-    tagvalue: Optional[str] = None
+    tagvalue: Optional[List[str]] = []
